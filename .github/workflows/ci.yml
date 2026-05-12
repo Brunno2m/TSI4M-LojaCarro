@@ -3,9 +3,9 @@ name: CI Pipeline de Testes
 # Executa o pipeline sempre que houver um push ou pull request na branch main
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build-and-test:
