@@ -1,5 +1,6 @@
-name: CI Pipeline de Testes
+name: Pipeline de Testes CI
 
+# Define quando a automação deve ser executada
 on:
   push:
     branches: [ "main", "master" ]
@@ -7,13 +8,15 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build-and-test:
+  construir-e-testar:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Copia os ficheiros do teu GitHub para a máquina virtual do Actions
       - name: Checkout do Repositório
         uses: actions/checkout@v4
 
+      # 2. Instala o Java 17 (JDK) e configura o cache do Maven para ser mais rápido
       - name: Configurar o Java 17
         uses: actions/setup-java@v4
         with:
@@ -21,6 +24,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      # 3. Executa os testes automatizados (Maven)
+      # IMPORTANTE: O working-directory indica que o pom.xml está dentro da subpasta
       - name: Rodar Testes (mvn test)
         working-directory: ./TSI4M-LojaCarro-dev
         run: mvn test
