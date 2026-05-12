@@ -84,7 +84,7 @@ class CarroServiceTest {
         List<Carro> resultado = carroService.findAll();
 
         // Verifica se a lista retornada tem o tamanho esperado (2 carros)
-        assertEquals(80, resultado.size());
+        assertEquals(2, resultado.size());
         verify(carroRepository, times(1)).findAll();
     }
 
