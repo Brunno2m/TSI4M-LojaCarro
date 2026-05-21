@@ -1,6 +1,9 @@
 package br.org.edu.ifrn.LojaCarro.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Entity
 public class Carro {
@@ -9,27 +12,24 @@ public class Carro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    public Long getId() {
-        return id;
-    }
+    // ESTAS VARIÁVEIS ESTAVAM A FALTAR OU ESTAVAM COM OUTRO NOME
+    private String modelo;
+    private Integer ano;
+    private Double preco;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // Construtor vazio (obrigatório para o JPA/Hibernate)
+    public Carro() {}
 
-    public String getModelo() {
-        return modelo;
-    }
+    // Getters e Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setModelo(String modelo) {
-        this.modelo = modelo;
-    }
+    public String getModelo() { return modelo; }
+    public void setModelo(String modelo) { this.modelo = modelo; }
 
-    public int getAno() {
-        return ano;
-    }
+    public Integer getAno() { return ano; }
+    public void setAno(Integer ano) { this.ano = ano; }
 
-    public void setAno(int ano) {
-        this.ano = ano;
-    }
+    public Double getPreco() { return preco; }
+    public void setPreco(Double preco) { this.preco = preco; }
 }
