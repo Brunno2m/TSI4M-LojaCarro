@@ -8,8 +8,6 @@ public class Carro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    String modelo;
-    int ano;
 
     public Long getId() {
         return id;
