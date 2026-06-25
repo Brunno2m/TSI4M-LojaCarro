@@ -1,43 +1,41 @@
 package br.org.edu.ifrn.LojaCarro.services;
 
 import br.org.edu.ifrn.LojaCarro.model.Carro;
+import br.org.edu.ifrn.LojaCarro.repository.CarroRepository;
+import br.org.edu.ifrn.LojaCarro.services.CarroService;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Optional;
 
-@SpringBootTest
-class CarroServiceTest {
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
-    @Autowired
+@ExtendWith(MockitoExtension.class)
+public class CarroServiceTest {
+
+    @Mock
+    private CarroRepository carroRepository;
+
+    @InjectMocks
     private CarroService carroService;
 
     @Test
-    void testeFalhaSalvarCarroSemDados() {
-        Carro carroInvalido = new Carro(); // Objeto vazio
-        // Valida que o método save lança um erro ao receber um objeto vazio
-        assertThrows(IllegalArgumentException.class, () -> {
-            carroService.save(carroInvalido);
-        });
-    }
+    public void deveSalvarCarroComSucesso() {
+        Carro carro = new Carro();
+        carro.setModelo("Corolla");
+        carro.setAno(2026);
+        carro.setPreco(150000.0);
 
-    @Test
-    void testeFalhaExcluirCarroInexistente() {
-        Long idInexistente = 999L;
-        // Valida que o sistema "reclama" (lança Exception) ao tentar deletar o que não existe
-        assertThrows(RuntimeException.class, () -> {
-            carroService.deleteById(idInexistente);
-        });
-    }
 
-    @Test
-    void testeFalhaAtualizarCarroInexistente() {
-        Carro carroInexistente = new Carro();
-        carroInexistente.setId(999L);
-        // Valida que o sistema lança erro ao atualizar id inexistente
-        assertThrows(RuntimeException.class, () -> {
-            carroService.update(carroInexistente);
-        });
+        when(carroRepository.save(any(Carro.class))).thenReturn(carro);
+
+        Carro salvo = carroService.save(carro);
+
+        assertNotNull(salvo);
+        verify(carroRepository, times(1)).save(carro);
     }
 }

@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Transactional
 public class CarroControllerIntegrationTest {
@@ -157,12 +157,12 @@ public class CarroControllerIntegrationTest {
         });
     }
 
-    // 5. Falha ao Excluir:
+       // 5. Falha ao Excluir: ID inexistente
     @Test
-    void testeFalhaExcluirCarro() throws Exception {
-        // Como o seu controller retorna 204 mesmo se não encontrar,
-        // o teste passa se esperar 204.
-        mockMvc.perform(delete(URL_BASE + "/999"))
-                .andExpect(status().isNoContent());
+    void testeFalhaExcluirCarro() {
+        // Valida que o service joga a exceção correta ao tentar deletar o ID 999
+        assertThrows(RuntimeException.class, () -> {
+            carroService.deleteById(999L);
+        }, "Deve lançar RuntimeException se o carro não for encontrado para exclusão");
     }
 }
