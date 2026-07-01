@@ -12,8 +12,8 @@ public class Carro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ESTAS VARIÁVEIS ESTAVAM A FALTAR OU ESTAVAM COM OUTRO NOME
     private String modelo;
+    private String marca;
     private Integer ano;
     private Double preco;
 
@@ -26,6 +26,9 @@ public class Carro {
 
     public String getModelo() { return modelo; }
     public void setModelo(String modelo) { this.modelo = modelo; }
+
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
 
     public Integer getAno() { return ano; }
     public void setAno(Integer ano) { this.ano = ano; }

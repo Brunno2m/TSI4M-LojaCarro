@@ -25,6 +25,7 @@ public class CarroIntegrationTestSimples {
     void testeSalvarCarroComSucesso() {
         Carro carro = new Carro();
         carro.setModelo("Honda Civic");
+        carro.setMarca("Honda");
         carro.setAno(2023);
         carro.setPreco(120000.0);
 
@@ -41,6 +42,7 @@ public class CarroIntegrationTestSimples {
         // Primeiro, salvamos um carro diretamente no banco
         Carro carro = new Carro();
         carro.setModelo("Toyota Corolla");
+        carro.setMarca("Toyota");
         carro.setAno(2024);
         carro.setPreco(150000.0);
         Carro carroSalvo = carroService.save(carro);
@@ -58,6 +60,7 @@ public class CarroIntegrationTestSimples {
         // Inserindo o dado original no MySQL
         Carro carro = new Carro();
         carro.setModelo("Chevrolet Onix");
+        carro.setMarca("Chevrolet");
         carro.setAno(2020);
         carro.setPreco(60000.0);
         Carro carroSalvo = carroService.save(carro);
@@ -76,12 +79,14 @@ public class CarroIntegrationTestSimples {
         // Populando o banco com 2 carros
         Carro carro1 = new Carro();
         carro1.setModelo("Fiat Argo");
+        carro1.setMarca("Fiat");
         carro1.setAno(2021);
         carro1.setPreco(50000.0);
         carroService.save(carro1);
 
         Carro carro2 = new Carro();
         carro2.setModelo("Hyundai HB20");
+        carro2.setMarca("Hyundai");
         carro2.setAno(2022);
         carro2.setPreco(70000.0);
         carroService.save(carro2);
@@ -99,6 +104,7 @@ public class CarroIntegrationTestSimples {
         // Inserindo um carro para depois excluir
         Carro carro = new Carro();
         carro.setModelo("Jeep Renegade");
+        carro.setMarca("Jeep");
         carro.setAno(2021);
         carro.setPreco(90000.0);
         Carro carroSalvo = carroService.save(carro);

@@ -1,0 +1,28 @@
+=====================================================================
+INSTRUÇÕES DE EXECUÇÃO DO FRONTEND INTEGRADO (THYMELEAF)
+=====================================================================
+
+O frontend desta aplicação foi desenvolvido de forma acoplada ao ecossistema
+Spring Boot por meio do Thymeleaf + Bootstrap (CDN). Não requer Node.js/NPM.
+
+---------------------------------------------------------------------
+1. EXECUÇÃO VIA LINHA DE COMANDO
+---------------------------------------------------------------------
+Abra o terminal/prompt de comando na pasta raiz do projeto descompactado:
+
+Passo 1: Limpar e compilar o executável:
+> mvn clean package
+
+Passo 2: Executar a aplicação:
+> java -jar target/LojaCarro-0.0.1-SNAPSHOT.jar
+
+---------------------------------------------------------------------
+2. ACESSO À INTERFACE GRÁFICA (FRONTEND)
+---------------------------------------------------------------------
+Assim que o Spring Boot inicializar na porta 8080, abra o seu navegador e acesse:
+
+👉 http://localhost:8080/painel
+
+A página carregará o formulário operacional para inserção de novos carros
+e a tabela de listagem dinâmica conectada diretamente ao banco de dados H2.
+=====================================================================

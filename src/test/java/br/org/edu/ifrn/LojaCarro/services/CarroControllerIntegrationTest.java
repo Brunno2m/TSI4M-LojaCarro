@@ -37,11 +37,19 @@ public class CarroControllerIntegrationTest {
     // Rota base corrigida para "/carro" (singular)
     private final String URL_BASE = "/carro";
 
+    @Test
+    void testeAbrirPainelPeloController() throws Exception {
+        mockMvc.perform(get("/painel"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("carros"));
+    }
+
     // 1. Teste: Salvar Carro -> Usa a rota "/carro/salvar" e espera status 200 (OK)
     @Test
     void testeSalvarCarroPeloController() throws Exception {
         Carro carro = new Carro();
         carro.setModelo("Honda Civic");
+        carro.setMarca("Honda");
         carro.setAno(2023);
         carro.setPreco(120000.0);
 
@@ -59,6 +67,7 @@ public class CarroControllerIntegrationTest {
     void testeBuscarCarroPorIdPeloController() throws Exception {
         Carro carro = new Carro();
         carro.setModelo("Toyota Corolla");
+        carro.setMarca("Toyota");
         carro.setAno(2024);
         carro.setPreco(150000.0);
         Carro carroSalvo = carroRepository.save(carro);
@@ -73,12 +82,14 @@ public class CarroControllerIntegrationTest {
     void testeListarTodosOsCarrosPeloController() throws Exception {
         Carro carro1 = new Carro();
         carro1.setModelo("Fiat Argo");
+        carro1.setMarca("Fiat");
         carro1.setAno(2021);
         carro1.setPreco(50000.0);
         carroRepository.save(carro1);
 
         Carro carro2 = new Carro();
         carro2.setModelo("Jeep Compass");
+        carro2.setMarca("Jeep");
         carro2.setAno(2022);
         carro2.setPreco(160000.0);
         carroRepository.save(carro2);
@@ -93,6 +104,7 @@ public class CarroControllerIntegrationTest {
     void testeAtualizarCarroPeloController() throws Exception {
         Carro carro = new Carro();
         carro.setModelo("Ford Ka");
+        carro.setMarca("Ford");
         carro.setAno(2019);
         carro.setPreco(45000.0);
         Carro carroSalvo = carroRepository.save(carro);
@@ -114,6 +126,7 @@ public class CarroControllerIntegrationTest {
     void testeExcluirCarroPeloController() throws Exception {
         Carro carro = new Carro();
         carro.setModelo("Renault Kwid");
+        carro.setMarca("Renault");
         carro.setAno(2023);
         carro.setPreco(60000.0);
         Carro carroSalvo = carroRepository.save(carro);
@@ -151,6 +164,7 @@ public class CarroControllerIntegrationTest {
     void testeFalhaAtualizarCarro() {
         Carro carro = new Carro();
         carro.setId(999L);
+        carro.setMarca("Inexistente");
         // Tenta atualizar ID que não existe, deve lançar exceção
         assertThrows(Exception.class, () -> {
             carroService.update(carro);

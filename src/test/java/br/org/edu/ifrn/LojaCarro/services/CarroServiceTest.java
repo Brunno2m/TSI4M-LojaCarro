@@ -27,6 +27,7 @@ public class CarroServiceTest {
     public void deveSalvarCarroComSucesso() {
         Carro carro = new Carro();
         carro.setModelo("Corolla");
+        carro.setMarca("Toyota");
         carro.setAno(2026);
         carro.setPreco(150000.0);
 

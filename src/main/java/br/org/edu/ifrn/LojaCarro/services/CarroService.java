@@ -14,7 +14,7 @@ public class CarroService {
     private CarroRepository carroRepository;
 
     public Carro save(Carro carro) {
-        if (carro.getModelo() == null || carro.getPreco() == null) {
+        if (carro == null || textoInvalido(carro.getModelo()) || textoInvalido(carro.getMarca()) || carro.getPreco() == null || carro.getAno() == null) {
             throw new IllegalArgumentException("Dados inválidos");
         }
         return carroRepository.save(carro);
@@ -41,4 +41,8 @@ public class CarroService {
         }
         carroRepository.deleteById(id);
     }
-} // <--- Esta chave final fecha a classe CarroService. Não deve haver NADA depois dela.
+
+    private boolean textoInvalido(String texto) {
+        return texto == null || texto.isBlank();
+    }
+}
