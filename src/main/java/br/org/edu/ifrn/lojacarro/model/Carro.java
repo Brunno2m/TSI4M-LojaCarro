@@ -1,4 +1,4 @@
-package br.org.edu.ifrn.LojaCarro.model;
+package br.org.edu.ifrn.lojacarro.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,8 +17,10 @@ public class Carro {
     private Integer ano;
     private Double preco;
 
-    // Construtor vazio (obrigatório para o JPA/Hibernate)
-    public Carro() {}
+    // 🔥 Adicionado o comentário exigido pelo Sonar dentro do bloco para justificar o método vazio
+    public Carro() {
+        // Construtor vazio obrigatorio para o funcionamento do JPA/Hibernate
+    }
 
     // Getters e Setters
     public Long getId() { return id; }

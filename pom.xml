@@ -86,11 +86,11 @@
 				</dependencies>
 				<configuration>
 					<targetClasses>
-						<param>br.org.edu.ifrn.LojaCarro.services.CarroService</param>
+						<param>br.org.edu.ifrn.lojacarro.services.CarroService</param>
 					</targetClasses>
 
 					<targetTests>
-						<param>br.org.edu.ifrn.LojaCarro.services.CarroServiceTest</param>
+						<param>br.org.edu.ifrn.lojacarro.services.CarroServiceTest</param>
 					</targetTests>
 				</configuration>
 			</plugin>

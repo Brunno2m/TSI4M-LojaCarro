@@ -1,4 +1,4 @@
-package br.org.edu.ifrn.LojaCarro;
+package br.org.edu.ifrn.lojacarro;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

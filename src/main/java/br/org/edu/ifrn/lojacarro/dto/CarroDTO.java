@@ -1,4 +1,4 @@
-package br.org.edu.ifrn.LojaCarro.dto;
+package br.org.edu.ifrn.lojacarro.dto;
 
 public class CarroDTO {
     private String modelo;
@@ -6,7 +6,10 @@ public class CarroDTO {
     private Integer ano;
     private Double preco;
 
-    public CarroDTO() {}
+    // 🔥 Adicionado o comentário exigido pelo Sonar dentro do bloco para justificar o método vazio
+    public CarroDTO() {
+        // Construtor vazio obrigatorio para desserializacao de JSON do Jackson/Spring
+    }
 
     // Getters e Setters
     public String getModelo() { return modelo; }

@@ -1,4 +1,4 @@
-package br.org.edu.ifrn.LojaCarro.services;
+package br.org.edu.ifrn.lojacarro.services;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +15,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false) // Mantém os filtros limpos para evitar conflitos de contexto
 @ActiveProfiles("test")
-public class CarroIntegrationTest {
+class CarroIntegrationTest { // 🔥 Removido o 'public' da classe
 
     @Autowired
     private MockMvc mockMvc;
 
     @Test
-    // PONTO 5 e 6: Valida o fluxo de envio anônimo para a rota de salvamento
-    public void deveBarrarSalvarSemAutenticacao() throws Exception {
+        // PONTO 5 e 6: Valida o fluxo de envio anônimo para a rota de salvamento
+    void deveBarrarSalvarSemAutenticacao() throws Exception { // 🔥 Removido o 'public' do método
         mockMvc.perform(post("/carro/salvar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"modelo\":\"Corolla\",\"ano\":2026,\"marca\":\"Toyota\",\"preco\":150000.0}"))
@@ -31,8 +31,8 @@ public class CarroIntegrationTest {
 
     @Test
     @WithMockUser(username = "vendedor", roles = "VENDEDOR")
-    // PONTO 6: Valida o comportamento da rota ao receber uma requisição mapeada como perfil Vendedor
-    public void deveBarrarSalvarSeUsuarioForApenasVendedor() throws Exception {
+        // PONTO 6: Valida o comportamento da rota ao receber uma requisição mapeada como perfil Vendedor
+    void deveBarrarSalvarSeUsuarioForApenasVendedor() throws Exception { // 🔥 Removido o 'public' do método
         mockMvc.perform(post("/carro/salvar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"modelo\":\"Corolla\",\"ano\":2026,\"marca\":\"Toyota\",\"preco\":150000.0}"))
@@ -41,8 +41,8 @@ public class CarroIntegrationTest {
 
     @Test
     @WithMockUser(username = "gerente", roles = "GERENTE")
-    // PONTO 4 e 6: Usuário administrador autenticado consegue fazer o fluxo completo com sucesso
-    public void devePermitirSalvarSeUsuarioForGerente() throws Exception {
+        // PONTO 4 e 6: Usuário administrador autenticado consegue fazer o fluxo completo com sucesso
+    void devePermitirSalvarSeUsuarioForGerente() throws Exception { // 🔥 Removido o 'public' do método
         mockMvc.perform(post("/carro/salvar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"modelo\":\"Corolla\",\"ano\":2026,\"marca\":\"Toyota\",\"preco\":150000.0}"))

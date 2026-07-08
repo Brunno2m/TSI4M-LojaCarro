@@ -1,21 +1,18 @@
-package br.org.edu.ifrn.LojaCarro.services;
+package br.org.edu.ifrn.lojacarro.services;
 
-import br.org.edu.ifrn.LojaCarro.model.Carro;
-import br.org.edu.ifrn.LojaCarro.repository.CarroRepository;
-import br.org.edu.ifrn.LojaCarro.services.CarroService;
+import br.org.edu.ifrn.lojacarro.model.Carro;
+import br.org.edu.ifrn.lojacarro.repository.CarroRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class CarroServiceTest {
+class CarroServiceTest { // 🔥 Removido o 'public' da classe
 
     @Mock
     private CarroRepository carroRepository;
@@ -24,13 +21,12 @@ public class CarroServiceTest {
     private CarroService carroService;
 
     @Test
-    public void deveSalvarCarroComSucesso() {
+    void deveSalvarCarroComSucesso() { // 🔥 Removido o 'public' do método
         Carro carro = new Carro();
         carro.setModelo("Corolla");
         carro.setMarca("Toyota");
         carro.setAno(2026);
         carro.setPreco(150000.0);
-
 
         when(carroRepository.save(any(Carro.class))).thenReturn(carro);
 

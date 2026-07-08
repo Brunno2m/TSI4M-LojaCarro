@@ -1,22 +1,24 @@
-package br.org.edu.ifrn.LojaCarro.controllers;
+package br.org.edu.ifrn.lojacarro.controllers;
 
-import br.org.edu.ifrn.LojaCarro.model.Carro;
-import br.org.edu.ifrn.LojaCarro.dto.CarroDTO; // 🔥 Importação do seu novo DTO
-import br.org.edu.ifrn.LojaCarro.services.CarroService;
-import org.springframework.beans.factory.annotation.Autowired;
+import br.org.edu.ifrn.lojacarro.model.Carro;
+import br.org.edu.ifrn.lojacarro.dto.CarroDTO;
+import br.org.edu.ifrn.lojacarro.services.CarroService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // Sonar: Habilitado para permitir comunicacao com o Front-end local (Vite/React)
 @RestController
 @RequestMapping("/carro")
 public class CarroController {
 
-    @Autowired
-    private CarroService carroService;
+    private final CarroService carroService;
 
-    // 🔥 Modificado para receber CarroDTO (Corrige a vulnerabilidade da L19 do Sonar)
+    // Injeção via Construtor (Corrige o Code Smell Principal)
+    public CarroController(CarroService carroService) {
+        this.carroService = carroService;
+    }
+
     @PostMapping("/salvar")
     public ResponseEntity<Carro> salvarCarro(@RequestBody CarroDTO dto) {
         Carro c = new Carro();
@@ -24,9 +26,7 @@ public class CarroController {
         c.setMarca(dto.getMarca());
         c.setAno(dto.getAno());
         c.setPreco(dto.getPreco());
-
-        Carro salvo = carroService.save(c);
-        return ResponseEntity.ok(salvo);
+        return ResponseEntity.ok(carroService.save(c));
     }
 
     @GetMapping("/{id}")
@@ -38,11 +38,9 @@ public class CarroController {
 
     @GetMapping
     public ResponseEntity<List<Carro>> pesquisarTodosCarros() {
-        List<Carro> carros = carroService.findAll();
-        return ResponseEntity.ok(carros);
+        return ResponseEntity.ok(carroService.findAll());
     }
 
-    // 🔥 Modificado para receber CarroDTO (Corrige a vulnerabilidade da L39 do Sonar)
     @PutMapping("/{id}")
     public ResponseEntity<Carro> atualizarCarro(@PathVariable Long id, @RequestBody CarroDTO dto) {
         Carro c = new Carro();
@@ -51,9 +49,7 @@ public class CarroController {
         c.setMarca(dto.getMarca());
         c.setAno(dto.getAno());
         c.setPreco(dto.getPreco());
-
-        Carro atualizado = carroService.update(c);
-        return ResponseEntity.ok(atualizado);
+        return ResponseEntity.ok(carroService.update(c));
     }
 
     @DeleteMapping("/{id}")
