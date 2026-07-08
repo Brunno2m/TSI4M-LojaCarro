@@ -1,73 +1,87 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Loja de Carros - IFRN</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOJA DE CARROS – GERENCIADOR EXTERNO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e9eff1 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
 </head>
-<body class="container mt-5">
+<body class="p-4 md:p-8 text-slate-700">
 
-<div class="p-5 mb-4 bg-light rounded-3">
-    <h1 class="display-5 fw-bold text-primary">Painel - Loja de Carros</h1>
-    <p class="col-md-8 fs-4">Interface integrada com Banco de Dados MySQL e Thymeleaf.</p>
-</div>
+<div class="max-w-7xl mx-auto">
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card p-4 shadow-sm">
-            <h3 class="h5 mb-3 text-secondary">Cadastrar Veículo</h3>
-
-            <form th:action="@{/painel/salvar}" th:object="${carroForm}" method="POST">
-                <div class="mb-3">
-                    <label class="form-label">Modelo:</label>
-                    <input type="text" th:field="*{modelo}" class="form-control" required placeholder="Ex: Civic">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Marca:</label>
-                    <input type="text" th:field="*{marca}" class="form-control" required placeholder="Ex: Honda">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Ano:</label>
-                    <input type="number" th:field="*{ano}" class="form-control" required placeholder="Ex: 2026">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Preço (R$):</label>
-                    <input type="number" step="0.01" th:field="*{preco}" class="form-control" required placeholder="Ex: 120000.00">
-                </div>
-                <button type="submit" class="btn btn-success w-100">Salvar no Banco</button>
-            </form>
+    <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 pb-4 border-b border-slate-200">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md shadow-blue-200">
+                <i class="fa-solid fa-car text-2xl"></i>
+            </div>
+            <h1 class="text-xl md:text-2xl font-black tracking-wider text-slate-800 uppercase">
+                Loja de Carros <span class="text-blue-600 font-medium text-lg md:text-xl block sm:inline sm:before:content-['|'] sm:before:mx-2 sm:before:text-slate-300">Gerenciador Externo</span>
+            </h1>
         </div>
-    </div>
-
-    <div class="col-md-8">
-        <div class="card p-4 shadow-sm">
-            <h3 class="h5 mb-3 text-secondary">Estoque Atual</h3>
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Modelo</th>
-                    <th>Marca</th>
-                    <th>Ano</th>
-                    <th>Preço</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="c : ${listaCarros}">
-                    <td th:text="${c.id}">1</td>
-                    <td th:text="${c.modelo}">Civic</td>
-                    <td th:text="${c.marca}">Honda</td>
-                    <td th:text="${c.ano}">2026</td>
-                    <td th:text="'R$ ' + ${#numbers.formatDecimal(c.preco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(listaCarros)}">
-                    <td colspan="5" class="text-center text-muted">Nenhum veículo em estoque no momento.</td>
-                </tr>
-                </tbody>
-            </table>
+        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-xs border border-slate-100">
+            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold text-sm">
+                A
+            </div>
+            <span class="font-medium text-sm text-slate-600">Admin</span>
+            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
         </div>
-    </div>
-</div>
+    </header>
 
-</body>
-</html>
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <section class="lg:col-span-4 glass-card p-6 rounded-2xl shadow-xl shadow-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                Cadastrar Novo Carro
+            </h2>
+
+            <form id="carroForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="modelo">Model</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                        <input type="text" id="modelo" required placeholder="Ex: Civic"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="ano">Calendar (Ano)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <input type="number" id="ano" required placeholder="Ex: 2026"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="preco">Currencia (Preço)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-dollar-sign"></i>
+                        </div>
+                        <input type="number" step="0.01" id="preco" required placeholder="Ex: R$ 120,000.00"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50

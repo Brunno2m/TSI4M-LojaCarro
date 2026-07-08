@@ -18,6 +18,10 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
+		<!-- Sonar properties: project identification and JaCoCo XML path -->
+		<sonar.projectKey>br.org.edu.ifrn:LojaCarro</sonar.projectKey>
+		<sonar.projectName>LojaCarro</sonar.projectName>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 	</properties>
 
 	<dependencies>
@@ -106,6 +110,12 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
+							<formats>
+								<xml>true</xml>
+							</formats>
+						</configuration>
 					</execution>
 					<execution>
 						<id>jacoco-check</id>
@@ -128,6 +138,13 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+
+			<!-- SonarQube plugin: analysis performed with 'mvn sonar:sonar' -->
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>3.9.1.2184</version>
 			</plugin>
 		</plugins>
 	</build>

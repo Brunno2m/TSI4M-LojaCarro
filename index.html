@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOJA DE CARROS – GERENCIADOR EXTERNO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e9eff1 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-slate-700">
+
+<div class="max-w-7xl mx-auto">
+
+    <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 pb-4 border-b border-slate-200">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md shadow-blue-200">
+                <i class="fa-solid fa-car text-2xl"></i>
+            </div>
+            <h1 class="text-xl md:text-2xl font-black tracking-wider text-slate-800 uppercase">
+                Loja de Carros <span class="text-blue-600 font-medium text-lg md:text-xl block sm:inline sm:before:content-['|'] sm:before:mx-2 sm:before:text-slate-300">Gerenciador Externo</span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-xs border border-slate-100">
+            <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold text-sm">
+                A
+            </div>
+            <span class="font-medium text-sm text-slate-600">Admin</span>
+            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <section class="lg:col-span-4 glass-card p-6 rounded-2xl shadow-xl shadow-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                Cadastrar Novo Carro
+            </h2>
+
+            <form id="carroForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="modelo">Model</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                        <input type="text" id="modelo" required placeholder="Ex: Civic"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="ano">Calendar (Ano)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <input type="number" id="ano" required placeholder="Ex: 2026"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2" for="preco">Currencia (Preço)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 border-r border-slate-200 pr-3">
+                            <i class="fa-solid fa-dollar-sign"></i>
+                        </div>
+                        <input type="number" step="0.01" id="preco" required placeholder="Ex: R$ 120,000.00"
+                               class="w-full pl-14 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300 font-medium">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-semibold py-4 px-6 rounded-xl transition-all shadow-lg shadow-blue-200 mt-2 flex flex-col items-center justify-center cursor-pointer">
+                    <span class="tracking-wide text-sm uppercase">Salvar Carro</span>
+                    <span class="text-[10px] opacity-75 font-normal mt-0.5">(POST para localhost:8080/carro/salvar)</span>
+                </button>
+            </form>
+        </section>
+
+        <section class="lg:col-span-8 space-y-6">
+            <div class="glass-card p-6 rounded-2xl shadow-xl shadow-slate-100 overflow-hidden">
+
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h2 class="text-lg font-bold text-slate-800">Carros Cadastrados</h2>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-48">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400 text-xs"></i>
+                            <input type="text" placeholder="Busca..." disabled class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg opacity-60 cursor-not-allowed">
+                        </div>
+                        <select disabled class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg opacity-60 cursor-not-allowed text-slate-400 font-medium">
+                            <option>Filter...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-100">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-200">
+                            <th class="py-4 px-4 w-16">ID <i class="fa-solid fa-chevron-down text-[9px] ml-1 text-slate-400"></i></th>
+                            <th class="py-4 px-4">Modelo</th>
+                            <th class="py-4 px-4">Ano</th>
+                            <th class="py-4 px-4">Preço</th>
+                            <th class="py-4 px-4 text-center w-24">Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabelaCarros" class="divide-y divide-slate-100 text-sm font-medium text-slate-600">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-12 flex justify-end">
+        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 px-4 py-2 rounded-full text-xs font-semibold text-emerald-700 shadow-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>FRONT-END CONECTADO À API: http://localhost:8080</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    const API_BASE_URL = window.location.protocol === 'file:' ? 'http://localhost:8080' : window.location.origin;
+    const API_URL_LISTAR = `${API_BASE_URL}/carro`;
+    const API_URL_SALVAR = `${API_BASE_URL}/carro/salvar`;
+
+    // Carrega os dados do Back-end
+    async function listarCarros() {
+        try {
+            const response = await fetch(API_URL_LISTAR);
+            const tbody = document.getElementById('tabelaCarros');
+            tbody.innerHTML = '';
+
+            if (!response.ok) throw new Error();
+
+            const carros = await response.json();
+
+            if(carros.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 font-normal">Nenhum carro cadastrado no banco de dados.</td></tr>`;
+                return;
+            }
+
+            carros.forEach((carro, index) => {
+                const tr = document.createElement('tr');
+                // Efeito zebrado moderno alternando cores de fundo
+                tr.className = index % 2 === 0 ? 'bg-white hover:bg-slate-50/80 transition-colors' : 'bg-slate-50/40 hover:bg-slate-50/80 transition-colors';
+
+                tr.innerHTML = `
+                        <td class="py-4 px-4 font-bold text-slate-400">${carro.id}</td>
+                        <td class="py-4 px-4 text-slate-800 font-semibold">${carro.modelo}</td>
+                        <td class="py-4 px-4">${carro.ano}</td>
+                        <td class="py-4 px-4 text-slate-700">
+                            <span class="flex items-center gap-2">
+                                R$ ${carro.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <div class="flex items-center justify-center gap-2 text-xs">
+                                <button type="button" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md opacity-60 hover:opacity-100 transition-all cursor-not-allowed" title="Editar (Apenas Visual)" disabled>
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </button>
+                                <button type="button" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md opacity-60 hover:opacity-100 transition-all cursor-not-allowed" title="Excluir (Apenas Visual)" disabled>
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Erro de conexão:', error);
+            document.getElementById('tabelaCarros').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-rose-500 bg-rose-50/30">
+                            <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                            Erro ao conectar com o Back-end. Certifique-se de que o JAR está rodando na porta 8080.
+                        </td>
+                    </tr>`;
+        }
+    }
+
+    // Evento de Envio do Formulário (Salvar)
+    document.getElementById('carroForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const modelo = document.getElementById('modelo').value;
+        const ano = parseInt(document.getElementById('ano').value);
+        const preco = parseFloat(document.getElementById('preco').value);
+
+        const novoCarro = { modelo, ano, preco };
+
+        try {
+            const response = await fetch(API_URL_SALVAR, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novoCarro)
+            });
+
+            if (response.ok) {
+                document.getElementById('carroForm').reset();
+                listarCarros(); // Atualiza a tabela imediatamente
+            } else {
+                alert('Erro retornado pelo servidor ao tentar salvar.');
+            }
+        } catch (error) {
+            alert('Não foi possível realizar o POST. O Back-end está ativo?');
+        }
+    });
+
+    // Executa a listagem ao carregar a página
+    window.onload = listarCarros;
+</script>
+</body>
+</html>

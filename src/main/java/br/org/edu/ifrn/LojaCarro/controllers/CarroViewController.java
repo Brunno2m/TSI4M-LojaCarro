@@ -1,6 +1,7 @@
 package br.org.edu.ifrn.LojaCarro.controllers;
 
 import br.org.edu.ifrn.LojaCarro.model.Carro;
+import br.org.edu.ifrn.LojaCarro.dto.CarroDTO; // 🔥 Importação do DTO
 import br.org.edu.ifrn.LojaCarro.services.CarroService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/painel") // Rota que o professor vai acessar no navegador
+@RequestMapping("/painel")
 public class CarroViewController {
 
     @Autowired
@@ -21,13 +22,20 @@ public class CarroViewController {
     @GetMapping({"", "/", "/carros"})
     public String exibirPainel(Model model) {
         model.addAttribute("listaCarros", carroService.findAll());
-        model.addAttribute("carroForm", new Carro());
+        model.addAttribute("carroForm", new CarroDTO()); // 🔥 Mudou para CarroDTO aqui
         return "carros";
     }
 
     // 2. Recebe os dados do formulário HTML, salva e atualiza a página
+    // 🔥 Corrigido para receber CarroDTO (Elimina a vulnerabilidade da L30 apontada pelo Sonar)
     @PostMapping("/salvar")
-    public String salvarCarroViaWeb(@ModelAttribute("carroForm") Carro carro) {
+    public String salvarCarroViaWeb(@ModelAttribute("carroForm") CarroDTO dto) {
+        Carro carro = new Carro();
+        carro.setModelo(dto.getModelo());
+        carro.setMarca(dto.getMarca());
+        carro.setAno(dto.getAno());
+        carro.setPreco(dto.getPreco());
+
         carroService.save(carro);
         return "redirect:/painel";
     }
