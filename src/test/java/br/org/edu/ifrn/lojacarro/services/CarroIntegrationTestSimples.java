@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class CarroIntegrationTestSimples {
+class CarroSimplesIT { // 🔥 Arquivo renomeado e 'public' removido conforme exigência da Regex do Sonar
 
     @Autowired
     private CarroService carroService;
@@ -31,7 +31,6 @@ public class CarroIntegrationTestSimples {
 
         Carro carroSalvo = carroService.save(carro);
 
-        // Verifica se o MySQL gerou um ID automaticamente para o carro
         assertNotNull(carroSalvo.getId(), "O ID não deve ser nulo após salvar no banco de dados");
         assertEquals("Honda Civic", carroSalvo.getModelo());
     }
@@ -39,7 +38,6 @@ public class CarroIntegrationTestSimples {
     // 2. Teste de Integração: Buscar Carro por ID
     @Test
     void testeBuscarCarroPorId() {
-        // Primeiro, salvamos um carro diretamente no banco
         Carro carro = new Carro();
         carro.setModelo("Toyota Corolla");
         carro.setMarca("Toyota");
@@ -47,7 +45,6 @@ public class CarroIntegrationTestSimples {
         carro.setPreco(150000.0);
         Carro carroSalvo = carroService.save(carro);
 
-        // Em seguida, tentamos buscá-lo pelo ID gerado
         Optional<Carro> carroEncontrado = carroService.findById(carroSalvo.getId());
 
         assertTrue(carroEncontrado.isPresent(), "O carro deve ser encontrado no banco");
@@ -57,7 +54,6 @@ public class CarroIntegrationTestSimples {
     // 3. Teste de Integração: Atualizar Carro
     @Test
     void testeAtualizarCarroComSucesso() {
-        // Inserindo o dado original no MySQL
         Carro carro = new Carro();
         carro.setModelo("Chevrolet Onix");
         carro.setMarca("Chevrolet");
@@ -65,18 +61,15 @@ public class CarroIntegrationTestSimples {
         carro.setPreco(60000.0);
         Carro carroSalvo = carroService.save(carro);
 
-        // Modificando os dados
         carroSalvo.setPreco(55000.0);
         Carro carroAtualizado = carroService.update(carroSalvo);
 
-        // Verificando se o MySQL aceitou a atualização
-        assertEquals(55000.0, carroAtualizado.getPreco(), "O preço deve ter sido atualizado no banco");
+        assertEquals(55000.0, carroAtualizado.getPreco(), "O preço deve ter sido updated no banco");
     }
 
     // 4. Teste de Integração: Listar Todos os Carros
     @Test
     void testeListarTodosOsCarros() {
-        // Populando o banco com 2 carros
         Carro carro1 = new Carro();
         carro1.setModelo("Fiat Argo");
         carro1.setMarca("Fiat");
@@ -91,7 +84,6 @@ public class CarroIntegrationTestSimples {
         carro2.setPreco(70000.0);
         carroService.save(carro2);
 
-        // Listando tudo que está no MySQL
         List<Carro> lista = carroService.findAll();
 
         assertFalse(lista.isEmpty(), "A lista não deve estar vazia");
@@ -101,7 +93,6 @@ public class CarroIntegrationTestSimples {
     // 5. Teste de Integração: Excluir Carro
     @Test
     void testeExcluirCarroComSucesso() {
-        // Inserindo um carro para depois excluir
         Carro carro = new Carro();
         carro.setModelo("Jeep Renegade");
         carro.setMarca("Jeep");
@@ -109,10 +100,8 @@ public class CarroIntegrationTestSimples {
         carro.setPreco(90000.0);
         Carro carroSalvo = carroService.save(carro);
 
-        // Excluindo o carro do MySQL (Pode ser .delete() ou .deleteById() dependendo de como você nomeou na sua classe)
         carroService.deleteById(carroSalvo.getId());
 
-        // Tentando buscar o carro excluído
         Optional<Carro> carroExcluido = carroService.findById(carroSalvo.getId());
         assertTrue(carroExcluido.isEmpty(), "O carro não deve mais existir no banco após a exclusão");
     }
