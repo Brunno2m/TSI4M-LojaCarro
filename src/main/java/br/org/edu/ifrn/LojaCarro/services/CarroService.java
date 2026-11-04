@@ -84,8 +84,8 @@ public class CarroService {
         if (modelo == null || modelo.trim().isEmpty()) {
             throw new CarroException("O modelo do carro não pode estar vazio.");
         }
-        if (modelo.length() >= 5) {
-            throw new CarroException("O modelo do carro deve ter menos de 5 caracteres. Tamanho atual: " + modelo.length());
+        if (modelo.length() > 50) {
+            throw new CarroException("O modelo do carro deve ter no máximo 50 caracteres. Tamanho atual: " + modelo.length());
         }
     }
 

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LojaCarro - Gestão de Vendas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .navbar-custom { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
+        .card-custom { border: none; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/estoque}">
+            <i class="bi bi-car-front-fill me-1"></i> LojaCarro
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold" th:href="@{/estoque}">
+                        <i class="bi bi-collection-fill me-1"></i> Carros
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active fw-bold" th:href="@{/vendas}">
+                        <i class="bi bi-cart-check-fill me-1"></i> Vendas
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold" th:href="@{/contabil}">
+                        <i class="bi bi-cash-coin me-1"></i> Contábil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold" th:href="@{/teste-drive}">
+                        <i class="bi bi-speedometer2 me-1"></i> Test Drive
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${usuarioLogado.cargo == 'PROPRIETARIO' or usuarioLogado.cargo == 'SUPERUSUARIO' or usuarioLogado.cargo == 'GERENTE'}">
+                    <a class="nav-link fw-semibold" th:href="@{/usuarios}">
+                        <i class="bi bi-people-fill me-1"></i> Usuários
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${usuarioLogado.cargo == 'PROPRIETARIO' or usuarioLogado.cargo == 'SUPERUSUARIO' or usuarioLogado.cargo == 'GERENTE'}">
+                    <a class="nav-link fw-semibold" th:href="@{/estoque/logs}">
+                        <i class="bi bi-journal-text me-1"></i> Logs (RabbitMQ)
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${usuarioLogado.cargo == 'PROPRIETARIO' or usuarioLogado.cargo == 'SUPERUSUARIO'}">
+                    <a class="nav-link text-warning fw-bold" th:href="@{/adm}">
+                        <i class="bi bi-shield-shaded me-1"></i> Painel ADM
+                    </a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center text-white">
+                <div class="me-3 text-end">
+                    <div class="fw-bold" th:text="${usuarioLogado.nome}">Usuário</div>
+                    <span class="badge bg-light text-dark" th:text="${usuarioLogado.cargo}">CARGO</span>
+                </div>
+                <a th:href="@{/logout}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sair
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- Alertas -->
+    <div th:if="${param.sucesso}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> Venda registrada com sucesso e evento publicado no RabbitMQ!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.deletado}" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-trash-fill me-2"></i> Venda removida do sistema!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.somenteLeitura}" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-lock-fill me-2"></i> Acesso Negado: O perfil Proprietário possui acesso exclusivo de visualização/leitura.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Cards Resumo -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card card-custom p-3 border-start border-success border-4 bg-white">
+                <div class="small text-muted text-uppercase fw-bold">Total Faturado em Vendas</div>
+                <h3 class="fw-bold text-success mb-0">R$ <span th:text="${#numbers.formatDecimal(totalFaturamento, 1, 'POINT', 2, 'COMMA')}">0,00</span></h3>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-custom p-3 border-start border-primary border-4 bg-white">
+                <div class="small text-muted text-uppercase fw-bold">Veículos Comercializados</div>
+                <h3 class="fw-bold text-primary mb-0"><span th:text="${vendas.size()}">0</span> unidades</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho e Ações -->
+    <div class="card card-custom p-4 mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-md-6">
+                <h4 class="mb-1 text-dark fw-bold">
+                    <i class="bi bi-bag-check-fill text-success me-2"></i>Controle de Vendas de Veículos
+                </h4>
+                <p class="text-muted small mb-0">Eventos de venda sincronizados com Contábil e auditados via RabbitMQ (15.228.215.36)</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <span th:if="${usuarioLogado.cargo == 'PROPRIETARIO'}" class="badge bg-warning text-dark p-2">
+                    <i class="bi bi-eye-fill me-1"></i> Modo Visualização - Proprietário
+                </span>
+                <a th:if="${usuarioLogado.cargo != 'PROPRIETARIO'}" th:href="@{/vendas/nova}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Registrar Nova Venda
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card card-custom p-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Veículo</th>
+                        <th>Cliente</th>
+                        <th>Valor da Venda</th>
+                        <th>Pagamento</th>
+                        <th>Vendedor</th>
+                        <th>Data/Hora</th>
+                        <th>Status</th>
+                        <th class="text-end" th:if="${usuarioLogado.cargo != 'PROPRIETARIO'}">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="v : ${vendas}">
+                        <td class="fw-bold" th:text="${v.id}">1</td>
+                        <td class="fw-bold text-primary" th:text="${v.carroModelo}">Modelo</td>
+                        <td>
+                            <div class="fw-semibold text-dark" th:text="${v.clienteNome}">Cliente</div>
+                            <small class="text-muted" th:text="${v.clienteTelefone}"></small>
+                        </td>
+                        <td class="fw-bold text-success">R$ <span th:text="${#numbers.formatDecimal(v.valorVenda, 1, 'POINT', 2, 'COMMA')}">0,00</span></td>
+                        <td><span class="badge bg-info text-dark" th:text="${v.formaPagamento}">PIX</span></td>
+                        <td th:text="${v.vendedorNome}">Vendedor</td>
+                        <td th:text="${#temporals.format(v.dataVenda, 'dd/MM/yyyy HH:mm')}">Data</td>
+                        <td>
+                            <span th:class="'badge ' + (${v.status == 'CONCLUIDA'} ? 'bg-success' : 'bg-danger')" th:text="${v.status}">CONCLUIDA</span>
+                        </td>
+                        <td class="text-end" th:if="${usuarioLogado.cargo != 'PROPRIETARIO'}">
+                            <a th:href="@{/vendas/editar/{id}(id=${v.id})}" class="btn btn-outline-primary btn-sm me-1" title="Editar">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <a th:href="@{/vendas/deletar/{id}(id=${v.id})}" class="btn btn-outline-danger btn-sm" title="Excluir"
+                               onclick="return confirm('Deseja realmente cancelar esta venda?');">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(vendas)}">
+                        <td colspan="9" class="text-center text-muted py-4">Nenhuma venda registrada no sistema.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

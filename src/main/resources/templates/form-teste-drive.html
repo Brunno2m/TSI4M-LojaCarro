@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LojaCarro - Agendar Test Drive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-custom { border: none; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body>
+
+<div class="container py-5" style="max-width: 650px;">
+    <div class="card card-custom p-4 bg-white">
+        <div class="d-flex align-items-center mb-4">
+            <a th:href="@{/teste-drive}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <h4 class="mb-0 fw-bold" th:text="${testeDrive.id != null and testeDrive.id > 0} ? 'Editar Test Drive' : 'Novo Agendamento de Test Drive'">
+                Agendamento de Test Drive
+            </h4>
+        </div>
+
+        <form th:action="@{/teste-drive/salvar}" th:object="${testeDrive}" method="post">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nome Completo do Cliente</label>
+                <input type="text" class="form-control" th:field="*{clienteNome}" placeholder="Ex: Roberto Carlos" required>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Telefone / WhatsApp</label>
+                    <input type="text" class="form-control" th:field="*{clienteTelefone}" placeholder="(84) 99999-9999" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">CPF do Cliente</label>
+                    <input type="text" class="form-control" th:field="*{clienteCpf}" placeholder="000.000.000-00">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">CNH do Condutor</label>
+                    <input type="text" class="form-control" th:field="*{clienteCnh}" placeholder="Número da CNH">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Veículo para o Test Drive</label>
+                    <select class="form-select" th:field="*{carroId}" required>
+                        <option value="">Selecione um carro...</option>
+                        <option th:each="c : ${carros}" th:value="${c.id}" th:text="${c.modelo + ' (' + c.ano + ') - R$ ' + c.preco}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Data e Horário</label>
+                    <input type="datetime-local" class="form-control" th:field="*{dataHora}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Status do Agendamento</label>
+                    <select class="form-select" th:field="*{status}" required>
+                        <option value="AGENDADO">AGENDADO</option>
+                        <option value="REALIZADO">REALIZADO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Vendedor Responsável</label>
+                <input type="text" class="form-control" th:field="*{vendedorResponsavel}" placeholder="Nome do vendedor acompanhante">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Observações / Rota Planejada</label>
+                <textarea class="form-control" rows="3" th:field="*{observacoes}" placeholder="Observações de feedback, preferências do cliente..."></textarea>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary py-2 fw-semibold">
+                    <i class="bi bi-check-lg me-1"></i> Confirmar e Notificar RabbitMQ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

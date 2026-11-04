@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LojaCarro - Lançamento Contábil</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-custom { border: none; border-radius: 0.75rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body>
+
+<div class="container py-5" style="max-width: 650px;">
+    <div class="card card-custom p-4 bg-white">
+        <div class="d-flex align-items-center mb-4">
+            <a th:href="@{/contabil}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <h4 class="mb-0 fw-bold" th:text="${contabil.id != null and contabil.id > 0} ? 'Editar Lançamento' : 'Novo Lançamento Contábil'">
+                Lançamento Contábil
+            </h4>
+        </div>
+
+        <form th:action="@{/contabil/salvar}" th:object="${contabil}" method="post">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Tipo de Movimentação</label>
+                <select class="form-select" th:field="*{tipo}" required>
+                    <option value="ENTRADA">ENTRADA (Receita / Ganho)</option>
+                    <option value="SAIDA">SAIDA (Despesa / Custo)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Descrição do Lançamento</label>
+                <input type="text" class="form-control" th:field="*{descricao}" placeholder="Ex: Venda de Veículo, Aluguel do Showroom, Seguro" required>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Valor (R$)</label>
+                    <input type="number" step="0.01" min="0.01" class="form-control" th:field="*{valor}" placeholder="0,00" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Categoria</label>
+                    <select class="form-select" th:field="*{categoria}" required>
+                        <option value="VENDA">Venda de Veículo</option>
+                        <option value="DESPESA_FIXA">Despesa Fixa (Aluguel, Luz)</option>
+                        <option value="MANUTENCAO">Manutenção de Pátio/Oficina</option>
+                        <option value="COMISSAO">Comissão de Vendedor</option>
+                        <option value="INVESTIMENTO">Aporte / Investimento</option>
+                        <option value="OUTROS">Outros</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Responsável pelo Lançamento</label>
+                <input type="text" class="form-control" th:field="*{responsavel}" placeholder="Nome do responsável">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Observações Complementares</label>
+                <textarea class="form-control" rows="3" th:field="*{observacoes}" placeholder="Informações adicionais para auditoria..."></textarea>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary py-2 fw-semibold">
+                    <i class="bi bi-check-lg me-1"></i> Salvar e Notificar RabbitMQ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
