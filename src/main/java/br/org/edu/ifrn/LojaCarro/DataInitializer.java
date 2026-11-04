@@ -28,14 +28,12 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // 1. Inicializa Usuários padrão se tabela estiver vazia
-        if (usuarioRepository.count() == 0) {
-            usuarioRepository.save(new Usuario("Carlos Proprietário", "PROPRIETARIO", "proprietario", "12345"));
-            usuarioRepository.save(new Usuario("Administrador Geral", "SUPERUSUARIO", "admin", "12345"));
-            usuarioRepository.save(new Usuario("Carlos Gerente", "GERENTE", "gerente", "12345"));
-            usuarioRepository.save(new Usuario("Ana Vendedora", "VENDEDOR", "vendedor", "12345"));
-            usuarioRepository.save(new Usuario("Roberto Contador", "CONTABIL", "contador", "12345"));
-        }
+        // 1. Inicializa Usuários padrão se não existirem
+        cadastrarSeNaoExistir("Carlos Proprietário", "PROPRIETARIO", "proprietario", "12345");
+        cadastrarSeNaoExistir("Administrador Geral", "SUPERUSUARIO", "admin", "12345");
+        cadastrarSeNaoExistir("Carlos Gerente", "GERENTE", "gerente", "12345");
+        cadastrarSeNaoExistir("Ana Vendedora", "VENDEDOR", "vendedor", "12345");
+        cadastrarSeNaoExistir("Roberto Contador", "CONTABIL", "contador", "12345");
 
         // 2. Inicializa estoque de carros se estiver vazio
         if (carroRepository.count() == 0) {
@@ -84,6 +82,12 @@ public class DataInitializer implements CommandLineRunner {
                     "Ana Vendedora",
                     "Venda à vista entregue no mesmo dia"
             ));
+        }
+    }
+
+    private void cadastrarSeNaoExistir(String nome, String cargo, String login, String senha) {
+        if (usuarioRepository.findByLogin(login).isEmpty()) {
+            usuarioRepository.save(new Usuario(nome, cargo, login, senha));
         }
     }
 }
