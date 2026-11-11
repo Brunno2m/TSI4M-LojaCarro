@@ -5,10 +5,15 @@ import br.org.edu.ifrn.LojaCarro.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.LocalDateTime;
 
 @Component
+@ConditionalOnProperty(
+        name = "app.demo-data.enabled",
+        havingValue = "true"
+)
 public class DataInitializer implements CommandLineRunner {
 
     @Autowired
