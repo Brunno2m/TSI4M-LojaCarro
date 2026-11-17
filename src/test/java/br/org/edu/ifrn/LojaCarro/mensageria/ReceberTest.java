@@ -1,19 +1,21 @@
+
 package br.org.edu.ifrn.LojaCarro.mensageria;
 
 import br.org.edu.ifrn.LojaCarro.model.LogOperacao;
 import br.org.edu.ifrn.LojaCarro.repository.LogOperacaoRepository;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ReceberTest {
@@ -25,115 +27,156 @@ class ReceberTest {
 
     @BeforeEach
     void setUp() {
+
         receber = new Receber();
-        receber.setLogOperacaoRepository(logOperacaoRepository);
+
+        receber.setLogOperacaoRepository(
+                logOperacaoRepository
+        );
     }
 
+    @AfterEach
+    void limpar() {
+
+        receber.setLogOperacaoRepository(null);
+    }
+
+    // Metodo auxiliar para capturar o registro de auditoria
+    private LogOperacao salvarECapturar(String mensagem) {
+
+        when(logOperacaoRepository.save(any(LogOperacao.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Receber.salvarLogNoBanco(mensagem);
+
+        ArgumentCaptor<LogOperacao> captor =
+                ArgumentCaptor.forClass(LogOperacao.class);
+
+        verify(logOperacaoRepository)
+                .save(captor.capture());
+
+        return captor.getValue();
+    }
+
+    // Teste 1: Recebimento de JSON
     @Test
     void testSalvarLogNoBancoViaJson() {
-        String json = "{\"tipoOperacao\":\"CADASTRO\",\"carroId\":12,\"carroModelo\":\"Civic\",\"carroAno\":2024,\"carroPreco\":150000.0,\"usuarioId\":2,\"usuarioNome\":\"Carlos\",\"usuarioCargo\":\"GERENTE\",\"detalhes\":\"Operação cadastrada\"}";
 
-        when(logOperacaoRepository.save(any(LogOperacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String json = """
+                {
+                    "entidade": "CARRO",
+                    "tipoOperacao": "CADASTRO",
+                    "referenciaId": 12,
+                    "usuarioId": 2,
+                    "usuarioNome": "Administrador",
+                    "detalhes": "Veiculo cadastrado"
+                }
+                """;
 
-        Receber.salvarLogNoBanco(json);
+        LogOperacao salvo = salvarECapturar(json);
 
-        ArgumentCaptor<LogOperacao> captor = ArgumentCaptor.forClass(LogOperacao.class);
-        verify(logOperacaoRepository).save(captor.capture());
-
-        LogOperacao salvo = captor.getValue();
         assertNotNull(salvo);
+        assertEquals("CARRO", salvo.getEntidade());
         assertEquals("CADASTRO", salvo.getTipoOperacao());
-        assertEquals(12L, salvo.getCarroId());
-        assertEquals("Civic", salvo.getCarroModelo());
-        assertEquals(150000.0, salvo.getCarroPreco());
-        assertEquals("Carlos", salvo.getUsuarioNome());
+        assertEquals(12L, salvo.getReferenciaId());
+        assertEquals(2L, salvo.getUsuarioId());
+        assertEquals("Administrador", salvo.getUsuarioNome());
+        assertEquals("Veiculo cadastrado", salvo.getDetalhes());
+        assertNotNull(salvo.getDataHora());
     }
 
+    // Teste 2: Recebimento de mensagem de texto
     @Test
     void testSalvarLogNoBancoViaTexto() {
-        String texto = "Gol,45000.0";
 
-        when(logOperacaoRepository.save(any(LogOperacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String mensagem = "Gol,45000.0";
 
-        Receber.salvarLogNoBanco(texto);
+        LogOperacao salvo = salvarECapturar(mensagem);
 
-        ArgumentCaptor<LogOperacao> captor = ArgumentCaptor.forClass(LogOperacao.class);
-        verify(logOperacaoRepository).save(captor.capture());
-
-        LogOperacao salvo = captor.getValue();
         assertNotNull(salvo);
+        assertEquals("CARRO", salvo.getEntidade());
         assertEquals("OPERACAO_TEXTO", salvo.getTipoOperacao());
-        assertEquals("Gol", salvo.getCarroModelo());
-        assertEquals(45000.0, salvo.getCarroPreco());
+        assertEquals("Gol,45000.0", salvo.getDetalhes());
+        assertEquals("Dupla RabbitMQ", salvo.getUsuarioNome());
+        assertNotNull(salvo.getDataHora());
     }
 
+    // Teste 3: JSON com nomes alternativos
     @Test
     void testSalvarLogNoBancoViaJsonAlternativo() {
-        String jsonAlt = "{\"operacao\":\"ATUALIZACAO\",\"modelo\":\"Corolla\",\"ano\":2022,\"valor\":110000.0,\"nomeUsuario\":\"Ana\",\"cargo\":\"VENDEDOR\",\"obs\":\"Atualizacao de preco\"}";
 
-        when(logOperacaoRepository.save(any(LogOperacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String json = """
+                {
+                    "modulo": "CARRO",
+                    "operacao": "ATUALIZACAO",
+                    "carroId": 15,
+                    "idUsuario": 3,
+                    "nomeUsuario": "Administrador",
+                    "obs": "Atualizacao de preco"
+                }
+                """;
 
-        Receber.salvarLogNoBanco(jsonAlt);
+        LogOperacao salvo = salvarECapturar(json);
 
-        ArgumentCaptor<LogOperacao> captor = ArgumentCaptor.forClass(LogOperacao.class);
-        verify(logOperacaoRepository).save(captor.capture());
-
-        LogOperacao salvo = captor.getValue();
         assertNotNull(salvo);
+        assertEquals("CARRO", salvo.getEntidade());
         assertEquals("ATUALIZACAO", salvo.getTipoOperacao());
-        assertEquals("Corolla", salvo.getCarroModelo());
-        assertEquals(2022, salvo.getCarroAno());
-        assertEquals(110000.0, salvo.getCarroPreco());
-        assertEquals("Ana", salvo.getUsuarioNome());
-        assertEquals("VENDEDOR", salvo.getUsuarioCargo());
+        assertEquals(15L, salvo.getReferenciaId());
+        assertEquals(3L, salvo.getUsuarioId());
+        assertEquals("Administrador", salvo.getUsuarioNome());
         assertEquals("Atualizacao de preco", salvo.getDetalhes());
     }
 
+    // Teste 4: JSON sem campo detalhes
     @Test
-    void testSalvarLogVendaComComissaoExplicita() {
-        String json = "{\"entidade\":\"VENDAS\",\"tipoOperacao\":\"CADASTRO\",\"carroModelo\":\"Civic\",\"valor\":100000.0,\"usuarioNome\":\"Ana\",\"usuarioCargo\":\"VENDEDOR\",\"percentualComissao\":3.0,\"valorComissao\":3000.0,\"detalhes\":\"Venda concluida\"}";
+    void testSalvarJsonSemDetalhes() {
 
-        when(logOperacaoRepository.save(any(LogOperacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String json = """
+                {"entidade":"TESTE_DRIVE","acao":"CANCELAMENTO","referenciaId":8}
+                """;
 
-        Receber.salvarLogNoBanco(json);
+        LogOperacao salvo = salvarECapturar(json);
 
-        ArgumentCaptor<LogOperacao> captor = ArgumentCaptor.forClass(LogOperacao.class);
-        verify(logOperacaoRepository).save(captor.capture());
-
-        LogOperacao salvo = captor.getValue();
         assertNotNull(salvo);
-        assertEquals("VENDAS", salvo.getEntidade());
-        assertEquals("CADASTRO", salvo.getTipoOperacao());
-        assertEquals(3.0, salvo.getPercentualComissao());
-        assertEquals(3000.0, salvo.getValorComissao());
+        assertEquals("TESTE_DRIVE", salvo.getEntidade());
+        assertEquals("CANCELAMENTO", salvo.getTipoOperacao());
+        assertEquals(8L, salvo.getReferenciaId());
+        assertEquals(json.trim(), salvo.getDetalhes());
     }
 
+    // Teste 5: Bloqueio de mensagens invalidas
     @Test
-    void testSalvarLogVendaCalculaComissaoPorCargoQuandoNaoInformada() {
-        String json = "{\"entidade\":\"VENDAS\",\"tipoOperacao\":\"CADASTRO\",\"carroModelo\":\"Corolla\",\"valor\":200000.0,\"usuarioNome\":\"Carlos\",\"usuarioCargo\":\"GERENTE\",\"detalhes\":\"Venda gerente\"}";
+    void testRejeitarMensagemInvalida() {
 
-        when(logOperacaoRepository.save(any(LogOperacao.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Receber.salvarLogNoBanco("{invalido")
+        );
 
-        Receber.salvarLogNoBanco(json);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Receber.salvarLogNoBanco("")
+        );
 
-        ArgumentCaptor<LogOperacao> captor = ArgumentCaptor.forClass(LogOperacao.class);
-        verify(logOperacaoRepository).save(captor.capture());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Receber.salvarLogNoBanco(null)
+        );
 
-        LogOperacao salvo = captor.getValue();
-        assertNotNull(salvo);
-        assertEquals(2.0, salvo.getPercentualComissao()); // GERENTE: 2%
-        assertEquals(4000.0, salvo.getValorComissao()); // 2% de 200.000 = 4.000
+        verifyNoInteractions(logOperacaoRepository);
     }
 
+    // Teste 6: Repositorio indisponivel
     @Test
-    void testSalvarLogNoBancoFallbackJdbc() {
-        // Simula execução sem Spring (repositório null)
+    void testRepositorioIndisponivel() {
+
         receber.setLogOperacaoRepository(null);
 
-        String jsonTeste = "{\"tipoOperacao\":\"TESTE_JDBC\",\"carroModelo\":\"HB20\",\"carroAno\":2021,\"carroPreco\":70000.0,\"usuarioNome\":\"Aluno Teste\",\"detalhes\":\"Gravando via fallback JDBC no MySQL\"}";
-        Receber.salvarLogNoBanco(jsonTeste);
+        assertThrows(
+                IllegalStateException.class,
+                () -> Receber.salvarLogNoBanco("Gol,45000.0")
+        );
 
-        // Restaura para os próximos testes
-        receber.setLogOperacaoRepository(logOperacaoRepository);
+        verifyNoInteractions(logOperacaoRepository);
     }
 }

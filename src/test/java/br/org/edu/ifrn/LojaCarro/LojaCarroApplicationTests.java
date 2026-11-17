@@ -15,7 +15,11 @@ import org.springframework.test.context.TestPropertySource;
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.rabbitmq.host=localhost",
-        "spring.rabbitmq.listener.simple.auto-startup=false"
+        "spring.rabbitmq.listener.simple.auto-startup=false",
+        "app.jwt.secret-base64=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
+        "app.admin.bootstrap.enabled=false",
+        "app.rabbitmq.enabled=false",
+        "spring.rabbitmq.listener.direct.auto-startup=false"
 })
 class LojaCarroApplicationTests {
 

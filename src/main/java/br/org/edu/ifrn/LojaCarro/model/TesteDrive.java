@@ -1,69 +1,118 @@
+
 package br.org.edu.ifrn.LojaCarro.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidade JPA para Agendamentos e Registros de Test Drive na concessionária.
- */
 @Entity
-@Table(name = "teste_drive")
+@Table(name = "agendamento")
 public class TesteDrive {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String clienteNome;
+    // Cliente responsável pelo agendamento
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    @JsonIgnore
+    private Usuario usuario;
 
-    @Column(nullable = false, length = 20)
-    private String clienteTelefone;
+    // Veículo escolhido
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "carro_id", nullable = false)
+    @JsonIgnore
+    private Carro carro;
 
-    @Column(length = 20)
-    private String clienteCpf;
-
-    @Column(length = 20)
-    private String clienteCnh;
-
-    private Long carroId;
-
-    @Column(nullable = false, length = 100)
-    private String carroModelo;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    @Column(nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "inicio", nullable = false)
     private LocalDateTime dataHora;
 
-    @Column(nullable = false, length = 20)
-    private String status; // AGENDADO, REALIZADO, CANCELADO
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "fim", nullable = false)
+    private LocalDateTime fim;
 
-    @Column(length = 100)
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "CONFIRMADO";
+
+    @Column(
+            name = "criado_em",
+            nullable = false,
+            insertable = false,
+            updatable = false
+    )
+    private LocalDateTime criadoEm;
+
+    @Column(name = "cancelado_em")
+    private LocalDateTime canceladoEm;
+
+
+    // Não serão persistidos no novo banco
+    @Transient
+    private Long usuarioId;
+
+    @Transient
+    private Long carroId;
+
+    @Transient
+    private String clienteNome;
+
+    @Transient
+    private String clienteTelefone;
+
+    @Transient
+    private String clienteCpf;
+
+    @Transient
+    private String clienteCnh;
+
+    @Transient
+    private String carroModelo;
+
+    @Transient
     private String vendedorResponsavel;
 
-    @Column(columnDefinition = "TEXT")
+    @Transient
     private String observacoes;
 
+
+
     public TesteDrive() {
-        this.status = "AGENDADO";
-        this.dataHora = LocalDateTime.now().plusDays(1);
     }
 
-    public TesteDrive(String clienteNome, String clienteTelefone, String clienteCpf, String clienteCnh,
-                      Long carroId, String carroModelo, LocalDateTime dataHora, String vendedorResponsavel, String observacoes) {
+    // Construtor mantido para compatibilidade
+    public TesteDrive(
+            String clienteNome,
+            String clienteTelefone,
+            String clienteCpf,
+            String clienteCnh,
+            Long carroId,
+            String carroModelo,
+            LocalDateTime dataHora,
+            String vendedorResponsavel,
+            String observacoes
+    ) {
         this.clienteNome = clienteNome;
         this.clienteTelefone = clienteTelefone;
         this.clienteCpf = clienteCpf;
         this.clienteCnh = clienteCnh;
         this.carroId = carroId;
         this.carroModelo = carroModelo;
-        this.dataHora = (dataHora != null) ? dataHora : LocalDateTime.now().plusDays(1);
-        this.status = "AGENDADO";
         this.vendedorResponsavel = vendedorResponsavel;
         this.observacoes = observacoes;
+        this.status = "CONFIRMADO";
+
+        setDataHora(
+                dataHora != null
+                        ? dataHora
+                        : LocalDateTime.now().plusDays(1)
+        );
     }
+
+
 
     public Long getId() {
         return id;
@@ -73,8 +122,52 @@ public class TesteDrive {
         this.id = id;
     }
 
+    @JsonIgnore
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+        this.usuarioId =
+                usuario != null ? usuario.getId() : null;
+    }
+
+    @JsonIgnore
+    public Carro getCarro() {
+        return carro;
+    }
+
+    public void setCarro(Carro carro) {
+        this.carro = carro;
+        this.carroId =
+                carro != null ? carro.getId() : null;
+    }
+
+    public Long getUsuarioId() {
+        return usuario != null
+                ? usuario.getId()
+                : usuarioId;
+    }
+
+    public void setUsuarioId(Long usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public Long getCarroId() {
+        return carro != null
+                ? carro.getId()
+                : carroId;
+    }
+
+    public void setCarroId(Long carroId) {
+        this.carroId = carroId;
+    }
+
     public String getClienteNome() {
-        return clienteNome;
+        return usuario != null
+                ? usuario.getNome()
+                : clienteNome;
     }
 
     public void setClienteNome(String clienteNome) {
@@ -105,16 +198,10 @@ public class TesteDrive {
         this.clienteCnh = clienteCnh;
     }
 
-    public Long getCarroId() {
-        return carroId;
-    }
-
-    public void setCarroId(Long carroId) {
-        this.carroId = carroId;
-    }
-
     public String getCarroModelo() {
-        return carroModelo;
+        return carro != null
+                ? carro.getModelo()
+                : carroModelo;
     }
 
     public void setCarroModelo(String carroModelo) {
@@ -127,6 +214,18 @@ public class TesteDrive {
 
     public void setDataHora(LocalDateTime dataHora) {
         this.dataHora = dataHora;
+
+        this.fim = dataHora == null
+                ? null
+                : dataHora.plusMinutes(30);
+    }
+
+    public LocalDateTime getFim() {
+        return fim;
+    }
+
+    public void setFim(LocalDateTime fim) {
+        this.fim = fim;
     }
 
     public String getStatus() {
@@ -137,11 +236,25 @@ public class TesteDrive {
         this.status = status;
     }
 
+    public LocalDateTime getCriadoEm() {
+        return criadoEm;
+    }
+
+    public LocalDateTime getCanceladoEm() {
+        return canceladoEm;
+    }
+
+    public void setCanceladoEm(LocalDateTime canceladoEm) {
+        this.canceladoEm = canceladoEm;
+    }
+
     public String getVendedorResponsavel() {
         return vendedorResponsavel;
     }
 
-    public void setVendedorResponsavel(String vendedorResponsavel) {
+    public void setVendedorResponsavel(
+            String vendedorResponsavel
+    ) {
         this.vendedorResponsavel = vendedorResponsavel;
     }
 

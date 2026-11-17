@@ -1,3 +1,4 @@
+
 package br.org.edu.ifrn.LojaCarro.repository;
 
 import br.org.edu.ifrn.LojaCarro.model.Usuario;
@@ -10,6 +11,4 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByLogin(String login);
-
-    Optional<Usuario> findByLoginAndSenha(String login, String senha);
 }

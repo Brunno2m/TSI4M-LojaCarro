@@ -1,277 +1,220 @@
 package br.org.edu.ifrn.LojaCarro.controllers;
 
-import br.org.edu.ifrn.LojaCarro.CarroException;
-import br.org.edu.ifrn.LojaCarro.client.UsuarioClient;
 import br.org.edu.ifrn.LojaCarro.dto.LogOperacaoDTO;
 import br.org.edu.ifrn.LojaCarro.mensageria.EnviarCarro;
 import br.org.edu.ifrn.LojaCarro.model.Carro;
 import br.org.edu.ifrn.LojaCarro.model.LogOperacao;
 import br.org.edu.ifrn.LojaCarro.repository.LogOperacaoRepository;
 import br.org.edu.ifrn.LojaCarro.services.CarroService;
-import jakarta.servlet.http.HttpServletRequest;
+import br.org.edu.ifrn.LojaCarro.services.ImagemService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/carro")
 public class CarroController {
 
     private static final Logger logger = LogManager.getLogger(CarroController.class);
+    private final CarroService carroService;
+    private final ImagemService imagemService;
+    private final EnviarCarro enviar;
+    private final LogOperacaoRepository logOperacaoRepository;
 
-    @Autowired
-    private CarroService carroService;
-
-    @Autowired
-    private UsuarioClient usuarioClient;
-
-    @Autowired
-    private EnviarCarro enviar;
-
-    @Autowired
-    private LogOperacaoRepository logOperacaoRepository;
-
-    @Autowired(required = false)
-    private HttpServletRequest httpRequest;
-
-    private Long resolverUsuarioId(Long headerId, Long paramId) {
-        if (headerId != null) return headerId;
-        if (paramId != null) return paramId;
-        return 1L; // Usuário padrão para chamadas de teste se omitido
+    public CarroController(CarroService carroService, ImagemService imagemService,
+                           EnviarCarro enviar, LogOperacaoRepository logOperacaoRepository) {
+        this.carroService = carroService;
+        this.imagemService = imagemService;
+        this.enviar = enviar;
+        this.logOperacaoRepository = logOperacaoRepository;
     }
 
-    private void verificarPermissaoLeitura() {
-        if (httpRequest != null) {
-            String cargo = httpRequest.getHeader("X-Usuario-Cargo");
-            if ("PROPRIETARIO".equalsIgnoreCase(cargo)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado: Perfil PROPRIETARIO possui acesso exclusivo de leitura.");
-            }
-        }
+    // Catálogo público: somente veículos disponíveis.
+    @GetMapping({"", "/listarCarros"})
+    public ResponseEntity<List<Carro>> pesquisarTodosCarros(
+            @RequestParam(required = false) String marca,
+            @RequestParam(required = false) String modelo,
+            @RequestParam(required = false) Double precoMinimo,
+            @RequestParam(required = false) Double precoMaximo,
+            @RequestParam(required = false) Integer anoModelo) {
+        return ResponseEntity.ok(carroService.filtrar(
+                marca, modelo, precoMinimo, precoMaximo, anoModelo));
     }
 
-    // Salvar carro (POST)
-    @PostMapping("/salvar")
+    @GetMapping("/{id}")
+    public ResponseEntity<Carro> pesquisarCarroPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(buscarDisponivel(id));
+    }
+
+    @GetMapping("/{id}/foto")
+    public ResponseEntity<Resource> foto(@PathVariable Long id) {
+        return responderFoto(buscarDisponivel(id));
+    }
+
+    // Acesso administrativo: exige JWT com perfil ADMIN.
+    @GetMapping("/admin")
+    public List<Carro> listarAdministrativo(@AuthenticationPrincipal Jwt jwt) {
+        exigirAdmin(jwt);
+        return carroService.findAll();
+    }
+
+    @GetMapping("/admin/{id}")
+    public Carro detalhesAdministrativos(@PathVariable Long id,
+                                         @AuthenticationPrincipal Jwt jwt) {
+        exigirAdmin(jwt);
+        return buscarCarro(id);
+    }
+
+    @GetMapping("/admin/{id}/foto")
+    public ResponseEntity<Resource> fotoAdministrativa(@PathVariable Long id,
+                                                       @AuthenticationPrincipal Jwt jwt) {
+        exigirAdmin(jwt);
+        return responderFoto(buscarCarro(id));
+    }
+
+    @PostMapping(value = {"", "/salvar"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Carro> salvarCarro(
-            @RequestBody Carro c,
-            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioIdHeader,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioIdParam) {
-
-        verificarPermissaoLeitura();
-
-        Carro savedCarro = carroService.save(c);
-
-        Long idUsuario = resolverUsuarioId(usuarioIdHeader, usuarioIdParam);
-        String nomeUsuario = usuarioClient.buscarNomePorId(idUsuario);
-
-        logger.info("AÇÃO: Carro Cadastrado via API | RESPONSÁVEL: {} [ID: {} via API] | MODELO: {} | PREÇO: R$ {}",
-                nomeUsuario, idUsuario, savedCarro.getModelo(), savedCarro.getPreco());
-
-        // Envio de mensagem assíncrona para o Módulo de Log via RabbitMQ (15.228.215.36)
-        LogOperacaoDTO logDTO = new LogOperacaoDTO(
-                "CADASTRO",
-                savedCarro.getId(),
-                savedCarro.getModelo(),
-                savedCarro.getAno(),
-                savedCarro.getPreco(),
-                idUsuario,
-                nomeUsuario,
-                "API",
-                "Carro cadastrado via API REST. Modelo: " + savedCarro.getModelo() + ", Ano: " + savedCarro.getAno() + ", Preço: R$ " + savedCarro.getPreco()
-        );
-        logDTO.setEntidade("CARRO");
-        enviar.enviar(logDTO);
-
-        return ResponseEntity.ok(savedCarro);
+            @RequestPart("dados") Carro dados,
+            @RequestPart("foto") MultipartFile foto,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long usuarioId = exigirAdmin(jwt);
+        String caminho = imagemService.salvar(foto);
+        dados.setFotoPrincipal(caminho); // Nunca aceita um caminho informado pelo cliente.
+        Carro salvo;
+        try {
+            salvo = carroService.save(dados);
+        } catch (RuntimeException e) {
+            imagemService.apagarNovoArquivo(caminho);
+            throw e;
+        }
+        auditar("CADASTRO", salvo, jwt, usuarioId);
+        return ResponseEntity.created(URI.create("/carro/admin/" + salvo.getId())).body(salvo);
     }
 
-    // Atualizar carro (por ID)
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Carro> atualizarCarro(
             @PathVariable Long id,
-            @RequestBody Carro c,
-            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioIdHeader,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioIdParam) {
-
-        verificarPermissaoLeitura();
-
-        c.setId(id);
-        Carro updatedCarro = carroService.update(c);
-
-        Long idUsuario = resolverUsuarioId(usuarioIdHeader, usuarioIdParam);
-        String nomeUsuario = usuarioClient.buscarNomePorId(idUsuario);
-
-        logger.info("AÇÃO: Carro Atualizado via API | RESPONSÁVEL: {} [ID: {} via API] | ID_CARRO: {} | MODELO: {}",
-                nomeUsuario, idUsuario, id, updatedCarro.getModelo());
-
-        // Envio de mensagem assíncrona para o Módulo de Log via RabbitMQ (15.228.215.36)
-        LogOperacaoDTO logDTO = new LogOperacaoDTO(
-                "ATUALIZACAO",
-                updatedCarro.getId(),
-                updatedCarro.getModelo(),
-                updatedCarro.getAno(),
-                updatedCarro.getPreco(),
-                idUsuario,
-                nomeUsuario,
-                "API",
-                "Carro atualizado via API REST por ID. ID: " + id + ", Modelo: " + updatedCarro.getModelo() + ", Preço: R$ " + updatedCarro.getPreco()
-        );
-        logDTO.setEntidade("CARRO");
-        enviar.enviar(logDTO);
-
-        return ResponseEntity.ok(updatedCarro);
+            @RequestPart("dados") Carro dados,
+            @RequestPart(value = "foto", required = false) MultipartFile foto,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long usuarioId = exigirAdmin(jwt);
+        Carro anterior = buscarCarro(id);
+        dados.setId(id);
+        // Preserva a foto persistida caso não exista um novo envio.
+        dados.setFotoPrincipal(null);
+        String caminho = null;
+        if (foto != null) {
+            caminho = imagemService.salvar(foto);
+            dados.setFotoPrincipal(caminho);
+        }
+        Carro atualizado;
+        try {
+            if (caminho == null) {
+                imagemService.carregar(anterior.getFotoPrincipal());
+            }
+            atualizado = carroService.update(dados);
+        } catch (RuntimeException e) {
+            if (caminho != null) imagemService.apagarNovoArquivo(caminho);
+            throw e;
+        }
+        // A fotografia antiga é preservada no disco por enquanto.
+        auditar("ATUALIZACAO", atualizado, jwt, usuarioId);
+        return ResponseEntity.ok(atualizado);
     }
 
-    // Deletar carro (por ID)
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarCarro(
-            @PathVariable Long id,
-            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioIdHeader,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioIdParam) {
-
-        verificarPermissaoLeitura();
-
-        Optional<Carro> carroOpt = carroService.findById(id);
-        String modeloCarro = carroOpt.map(Carro::getModelo).orElse("ID: " + id);
-        Integer anoCarro = carroOpt.map(Carro::getAno).orElse(null);
-        Double precoCarro = carroOpt.map(Carro::getPreco).orElse(null);
-
+    public ResponseEntity<Void> deletarCarro(@PathVariable Long id,
+                                             @AuthenticationPrincipal Jwt jwt) {
+        Long usuarioId = exigirAdmin(jwt);
+        Carro carro = buscarCarro(id);
         carroService.deleteById(id);
-
-        Long idUsuario = resolverUsuarioId(usuarioIdHeader, usuarioIdParam);
-        String nomeUsuario = usuarioClient.buscarNomePorId(idUsuario);
-
-        logger.info("AÇÃO: Carro Deletado via API | RESPONSÁVEL: {} [ID: {} via API] | ID_CARRO: {}",
-                nomeUsuario, idUsuario, id);
-
-        // Envio de mensagem assíncrona para o Módulo de Log via RabbitMQ (15.228.215.36)
-        LogOperacaoDTO logDTO = new LogOperacaoDTO(
-                "EXCLUSAO",
-                id,
-                modeloCarro,
-                anoCarro,
-                precoCarro,
-                idUsuario,
-                nomeUsuario,
-                "API",
-                "Carro deletado via API REST por ID: " + id + ", Modelo: " + modeloCarro
-        );
-        logDTO.setEntidade("CARRO");
-        enviar.enviar(logDTO);
-
+        auditar("EXCLUSAO_LOGICA", carro, jwt, usuarioId);
         return ResponseEntity.noContent().build();
     }
 
-    // Pesquisar carro por ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Carro> pesquisarCarroPorId(@PathVariable Long id) {
-        Optional<Carro> carro = carroService.findById(id);
-        return carro.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    @PatchMapping("/{id}/vender")
+    public Carro marcarComoVendido(@PathVariable Long id,
+                                   @AuthenticationPrincipal Jwt jwt) {
+        Long usuarioId = exigirAdmin(jwt);
+        Carro carro = carroService.marcarComoVendido(id);
+        auditar("VENDA", carro, jwt, usuarioId);
+        return carro;
     }
 
-    // Pesquisar todos os carros
-    @GetMapping("/listarCarros")
-    public ResponseEntity<List<Carro>> pesquisarTodosCarros() {
-        List<Carro> carros = carroService.findAll();
-        return ResponseEntity.ok(carros);
-    }
-
-    // Listar todos os logs de operações salvos pelo Módulo de Log via RabbitMQ
     @GetMapping("/logs")
-    public ResponseEntity<List<LogOperacao>> listarLogsOperacoes() {
-        List<LogOperacao> logs = logOperacaoRepository.findAllByOrderByDataHoraDesc();
-        return ResponseEntity.ok(logs);
+    public List<LogOperacao> listarLogsOperacoes(@AuthenticationPrincipal Jwt jwt) {
+        exigirAdmin(jwt);
+        return logOperacaoRepository.findAllByOrderByDataHoraDesc();
     }
 
-    @PostMapping(value = "/getCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Carro> pesquisarCarroPorModelo(@RequestBody String modelo) {
-        Optional<Carro> carro = carroService.findByModelo(modelo.trim());
-        return carro.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    private Carro buscarCarro(Long id) {
+        return carroService.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Veículo não encontrado."));
     }
 
-    @PostMapping(value = "/deleteCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> deletarCarroPorModelo(
-            @RequestBody String modelo,
-            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioIdHeader,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioIdParam) {
-        Carro carro = carroService.deleteByModelo(modelo.trim());
-
-        Long idUsuario = resolverUsuarioId(usuarioIdHeader, usuarioIdParam);
-        String nomeUsuario = usuarioClient.buscarNomePorId(idUsuario);
-
-        logger.info("AÇÃO: Carro Deletado por Modelo via API | RESPONSÁVEL: {} [ID: {} via API] | MODELO: {}",
-                nomeUsuario, idUsuario, carro.getModelo());
-
-        LogOperacaoDTO logDTO = new LogOperacaoDTO(
-                "EXCLUSAO",
-                carro.getId(),
-                carro.getModelo(),
-                carro.getAno(),
-                carro.getPreco(),
-                idUsuario,
-                nomeUsuario,
-                "API",
-                "Carro deletado via API REST por Modelo: " + carro.getModelo()
-        );
-        logDTO.setEntidade("CARRO");
-        enviar.enviar(logDTO);
-
-        return ResponseEntity.ok("Carro deletado: " + carro.getModelo());
-    }
-
-    @PostMapping(value = "/updateCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Carro> atualizarCarroPorModelo(
-            @RequestBody String payload,
-            @RequestHeader(value = "X-Usuario-Id", required = false) Long usuarioIdHeader,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioIdParam) {
-        String[] partes = payload.split(",", 2);
-        if (partes.length < 2) {
-            throw new CarroException("Payload inválido. Use modelo,preco.");
+    private Carro buscarDisponivel(Long id) {
+        Carro carro = buscarCarro(id);
+        if (!Objects.equals("DISPONIVEL", carro.getSituacao())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Veículo não encontrado.");
         }
-        String modelo = partes[0].trim();
-        double preco = parsePreco(partes[1].trim());
-        Carro updatedCarro = carroService.updateByModelo(modelo, preco);
-
-        Long idUsuario = resolverUsuarioId(usuarioIdHeader, usuarioIdParam);
-        String nomeUsuario = usuarioClient.buscarNomePorId(idUsuario);
-
-        logger.info("AÇÃO: Carro Atualizado por Modelo via API | RESPONSÁVEL: {} [ID: {} via API] | MODELO: {} | NOVO PREÇO: R$ {}",
-                nomeUsuario, idUsuario, modelo, preco);
-
-        LogOperacaoDTO logDTO = new LogOperacaoDTO(
-                "ATUALIZACAO",
-                updatedCarro.getId(),
-                updatedCarro.getModelo(),
-                updatedCarro.getAno(),
-                updatedCarro.getPreco(),
-                idUsuario,
-                nomeUsuario,
-                "API",
-                "Carro atualizado via API REST por Modelo: " + modelo + ", Novo Preço: R$ " + preco
-        );
-        logDTO.setEntidade("CARRO");
-        enviar.enviar(logDTO);
-
-        return ResponseEntity.ok(updatedCarro);
+        return carro;
     }
 
-    @PostMapping(value = "/teste", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> bomDia(@RequestBody String nome) {
-        return ResponseEntity.ok("Bom dia, " + nome.trim());
+    private ResponseEntity<Resource> responderFoto(Carro carro) {
+        String caminho = carro.getFotoPrincipal();
+        return ResponseEntity.ok()
+                .contentType(imagemService.tipo(caminho))
+                .header("X-Content-Type-Options", "nosniff")
+                .body(imagemService.carregar(caminho));
     }
 
-    private double parsePreco(String preco) {
+    // Contrato para a autenticação que implementaremos: sub = ID do usuário;
+    // perfil = ADMIN ou CLIENTE; nome = nome do usuário.
+    private Long exigirAdmin(Jwt jwt) {
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Faça login.");
+        }
+        if (!"ADMIN".equals(jwt.getClaimAsString("perfil"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso restrito ao administrador.");
+        }
         try {
-            return Double.parseDouble(preco);
-        } catch (NumberFormatException ex) {
-            throw new CarroException("Preço inválido: " + preco);
+            long id = Long.parseLong(jwt.getSubject());
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido.");
+        }
+    }
+
+    private void auditar(String acao, Carro carro, Jwt jwt, Long usuarioId) {
+        String nome = jwt.getClaimAsString("nome");
+        if (nome == null) nome = "Administrador";
+        String detalhes = acao + " do veículo " + carro.getId()
+                + ": " + carro.getModelo();
+        logger.info("AÇÃO: {} | USUÁRIO: {} | VEÍCULO: {}", acao, usuarioId, carro.getId());
+        LogOperacaoDTO dto = new LogOperacaoDTO(acao, carro.getId(), carro.getModelo(),
+                carro.getAno(), carro.getPreco(), usuarioId, nome, "ADMIN", detalhes);
+        dto.setEntidade("CARRO");
+        try {
+            enviar.enviar(dto);
+        } catch (RuntimeException e) {
+            // O CRUD já foi confirmado; não informa falsamente que a gravação falhou.
+            // Entrega garantida da auditoria será tratada no RF07.
+            logger.warn("Não foi possível enviar auditoria ao RabbitMQ para veículo {}", carro.getId());
         }
     }
 }

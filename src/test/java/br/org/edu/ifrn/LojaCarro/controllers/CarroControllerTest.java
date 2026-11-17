@@ -1,25 +1,31 @@
+
 package br.org.edu.ifrn.LojaCarro.controllers;
 
-import br.org.edu.ifrn.LojaCarro.client.UsuarioClient;
-import br.org.edu.ifrn.LojaCarro.dto.LogOperacaoDTO;
 import br.org.edu.ifrn.LojaCarro.model.Carro;
 import br.org.edu.ifrn.LojaCarro.services.CarroService;
+import br.org.edu.ifrn.LojaCarro.services.ImagemService;
 import br.org.edu.ifrn.LojaCarro.mensageria.EnviarCarro;
+import br.org.edu.ifrn.LojaCarro.repository.LogOperacaoRepository;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CarroControllerTest {
@@ -28,80 +34,194 @@ class CarroControllerTest {
     private CarroService carroService;
 
     @Mock
-    private UsuarioClient usuarioClient;
+    private ImagemService imagemService;
 
     @Mock
     private EnviarCarro enviar;
 
+    @Mock
+    private LogOperacaoRepository logOperacaoRepository;
+
     @InjectMocks
     private CarroController carroController;
 
-    @Test
-    void testSalvarCarroEnviaMensagemRabbitMQ() {
-        Carro entrada = new Carro("Polo", 2024, 85000.0);
-        Carro salvo = new Carro("Polo", 2024, 85000.0);
-        salvo.setId(10L);
+    private Carro carro;
+    private Jwt admin;
+    private Jwt cliente;
 
-        when(carroService.save(any(Carro.class))).thenReturn(salvo);
-        when(usuarioClient.buscarNomePorId(2L)).thenReturn("Carlos Gerente");
+    @BeforeEach
+    void configurar() {
 
-        ResponseEntity<Carro> resposta = carroController.salvarCarro(entrada, 2L, null);
+        carro = new Carro();
 
-        assertNotNull(resposta.getBody());
-        assertEquals(10L, resposta.getBody().getId());
+        carro.setId(1L);
+        carro.setMarca("Toyota");
+        carro.setModelo("Corolla");
+        carro.setAno(2024);
+        carro.setAnoModelo(2025);
+        carro.setCor("Prata");
+        carro.setQuilometragem(15000L);
+        carro.setTipoCombustivel("Flex");
+        carro.setTipoTransmissao("Automatico");
+        carro.setPreco(120000.00);
+        carro.setDescricao("Veiculo em excelente estado.");
+        carro.setSituacao("DISPONIVEL");
+        carro.setFotoPrincipal("corolla.jpg");
 
-        ArgumentCaptor<LogOperacaoDTO> captor = ArgumentCaptor.forClass(LogOperacaoDTO.class);
-        verify(enviar).enviar(captor.capture());
+        admin = criarToken("ADMIN");
+        cliente = criarToken("CLIENTE");
+    }
 
-        LogOperacaoDTO logEnviado = captor.getValue();
-        assertEquals("CADASTRO", logEnviado.getTipoOperacao());
-        assertEquals("Polo", logEnviado.getCarroModelo());
-        assertEquals(85000.0, logEnviado.getCarroPreco());
-        assertEquals("Carlos Gerente", logEnviado.getUsuarioNome());
+    private Jwt criarToken(String perfil) {
+
+        return Jwt.withTokenValue("token-teste")
+                .header("alg", "HS256")
+                .subject("1")
+                .claim("perfil", perfil)
+                .claim("nome", "Usuario Teste")
+                .build();
     }
 
     @Test
-    void testAtualizarCarroEnviaMensagemRabbitMQ() {
-        Carro entrada = new Carro("Polo", 2024, 89000.0);
-        Carro atualizado = new Carro("Polo", 2024, 89000.0);
-        atualizado.setId(10L);
+    void deveListarCarrosDisponiveis() {
 
-        when(carroService.update(any(Carro.class))).thenReturn(atualizado);
-        when(usuarioClient.buscarNomePorId(1L)).thenReturn("Admin");
+        when(carroService.filtrar(
+                null, null, null, null, null
+        )).thenReturn(List.of(carro));
 
-        ResponseEntity<Carro> resposta = carroController.atualizarCarro(10L, entrada, 1L, null);
+        ResponseEntity<List<Carro>> resposta =
+                carroController.pesquisarTodosCarros(
+                        null, null, null, null, null
+                );
 
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
         assertNotNull(resposta.getBody());
-        assertEquals(10L, resposta.getBody().getId());
-
-        ArgumentCaptor<LogOperacaoDTO> captor = ArgumentCaptor.forClass(LogOperacaoDTO.class);
-        verify(enviar).enviar(captor.capture());
-
-        LogOperacaoDTO logEnviado = captor.getValue();
-        assertEquals("ATUALIZACAO", logEnviado.getTipoOperacao());
-        assertEquals(10L, logEnviado.getCarroId());
-        assertEquals(89000.0, logEnviado.getCarroPreco());
+        assertEquals(1, resposta.getBody().size());
     }
 
     @Test
-    void testDeletarCarroEnviaMensagemRabbitMQ() {
-        Carro carroExistente = new Carro("Ka", 2021, 42000.0);
-        carroExistente.setId(3L);
+    void deveBuscarCarroPorId() {
 
-        when(carroService.findById(3L)).thenReturn(Optional.of(carroExistente));
-        when(usuarioClient.buscarNomePorId(1L)).thenReturn("Admin");
+        when(carroService.findById(1L))
+                .thenReturn(Optional.of(carro));
 
-        ResponseEntity<Void> resposta = carroController.deletarCarro(3L, 1L, null);
+        ResponseEntity<Carro> resposta =
+                carroController.pesquisarCarroPorId(1L);
 
-        assertEquals(204, resposta.getStatusCode().value());
-        verify(carroService).deleteById(3L);
+        assertEquals(HttpStatus.OK, resposta.getStatusCode());
+        assertNotNull(resposta.getBody());
+        assertEquals("Corolla", resposta.getBody().getModelo());
+    }
 
-        ArgumentCaptor<LogOperacaoDTO> captor = ArgumentCaptor.forClass(LogOperacaoDTO.class);
-        verify(enviar).enviar(captor.capture());
+    @Test
+    void deveRetornarErroQuandoCarroNaoExiste() {
 
-        LogOperacaoDTO logEnviado = captor.getValue();
-        assertEquals("EXCLUSAO", logEnviado.getTipoOperacao());
-        assertEquals(3L, logEnviado.getCarroId());
-        assertEquals("Ka", logEnviado.getCarroModelo());
+        when(carroService.findById(99L))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
+                () -> carroController.pesquisarCarroPorId(99L)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
+    }
+
+    @Test
+    void naoDeveExibirCarroInativoNoCatalogo() {
+
+        carro.setSituacao("INATIVO");
+
+        when(carroService.findById(1L))
+                .thenReturn(Optional.of(carro));
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
+                () -> carroController.pesquisarCarroPorId(1L)
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, erro.getStatusCode());
+    }
+
+    @Test
+    void deveCadastrarCarroComoAdministrador() {
+
+        MockMultipartFile foto = new MockMultipartFile(
+                "foto",
+                "corolla.jpg",
+                "image/jpeg",
+                new byte[]{1, 2, 3}
+        );
+
+        when(imagemService.salvar(foto))
+                .thenReturn("corolla.jpg");
+
+        when(carroService.save(carro))
+                .thenReturn(carro);
+
+        ResponseEntity<Carro> resposta =
+                carroController.salvarCarro(carro, foto, admin);
+
+        assertEquals(HttpStatus.CREATED, resposta.getStatusCode());
+
+        verify(imagemService).salvar(foto);
+        verify(carroService).save(carro);
+    }
+
+    @Test
+    void deveImpedirClienteDeCadastrarCarro() {
+
+        MockMultipartFile foto = new MockMultipartFile(
+                "foto",
+                "corolla.jpg",
+                "image/jpeg",
+                new byte[]{1, 2, 3}
+        );
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
+                () -> carroController.salvarCarro(
+                        carro, foto, cliente
+                )
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, erro.getStatusCode());
+
+        verifyNoInteractions(carroService, imagemService);
+    }
+
+    @Test
+    void deveImpedirCadastroSemAutenticacao() {
+
+        ResponseStatusException erro = assertThrows(
+                ResponseStatusException.class,
+                () -> carroController.salvarCarro(
+                        carro, null, null
+                )
+        );
+
+        assertEquals(
+                HttpStatus.UNAUTHORIZED,
+                erro.getStatusCode()
+        );
+
+        verifyNoInteractions(carroService, imagemService);
+    }
+
+    @Test
+    void deveDesativarCarroComoAdministrador() {
+
+        when(carroService.findById(1L))
+                .thenReturn(Optional.of(carro));
+
+        ResponseEntity<Void> resposta =
+                carroController.deletarCarro(1L, admin);
+
+        assertEquals(
+                HttpStatus.NO_CONTENT,
+                resposta.getStatusCode()
+        );
+
+        verify(carroService).deleteById(1L);
     }
 }

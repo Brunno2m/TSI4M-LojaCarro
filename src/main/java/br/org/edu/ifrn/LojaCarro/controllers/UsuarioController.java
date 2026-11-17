@@ -1,153 +1,156 @@
+
 package br.org.edu.ifrn.LojaCarro.controllers;
 
-import br.org.edu.ifrn.LojaCarro.client.UsuarioClient;
 import br.org.edu.ifrn.LojaCarro.model.Usuario;
 import br.org.edu.ifrn.LojaCarro.services.UsuarioService;
-import jakarta.servlet.http.HttpSession;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import br.org.edu.ifrn.LojaCarro.security.JwtService;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-/**
- * Controller Web para interface de Usuários na Loja de Carro.
- * Proprietário possui acesso de visualização (apenas leitura).
- */
-@Controller
-@RequestMapping("/usuarios")
+@RestController
+@RequestMapping("/auth")
 public class UsuarioController {
 
-    private static final Logger logger = LogManager.getLogger(UsuarioController.class);
+    private final UsuarioService usuarioService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private UsuarioClient usuarioClient;
-
-    @Autowired
-    private UsuarioService usuarioService;
-
-    // Lista todos os usuários cadastrados
-    @GetMapping
-    public String listarUsuarios(HttpSession session, Model model) {
-        Usuario usuarioLogado = (Usuario) session.getAttribute("usuarioLogado");
-        if (usuarioLogado == null) {
-            return "redirect:/login";
-        }
-
-        // PROPRIETARIO, SUPERUSUARIO e GERENTE podem ver gerenciamento de usuários
-        if (!"PROPRIETARIO".equals(usuarioLogado.getCargo()) &&
-            !"SUPERUSUARIO".equals(usuarioLogado.getCargo()) &&
-            !"GERENTE".equals(usuarioLogado.getCargo())) {
-            return "redirect:/estoque?semPermissao=true";
-        }
-
-        model.addAttribute("usuarioLogado", usuarioLogado);
-        model.addAttribute("usuarios", usuarioClient.listarTodos());
-        return "usuarios";
+    public UsuarioController(
+            UsuarioService usuarioService,
+            JwtService jwtService
+    ) {
+        this.usuarioService = usuarioService;
+        this.jwtService = jwtService;
     }
 
-    @GetMapping("/novo")
-    public String exibirFormulario(HttpSession session, Model model) {
-        Usuario usuarioLogado = (Usuario) session.getAttribute("usuarioLogado");
-        if (usuarioLogado == null) {
-            return "redirect:/login";
-        }
+    // Cadastro público de clientes
+    @PostMapping("/cadastro")
+    public ResponseEntity<UsuarioResponse> cadastrar(
+            @Valid @RequestBody CadastroRequest dados
+    ) {
 
-        // Proprietário é apenas leitura
-        if ("PROPRIETARIO".equals(usuarioLogado.getCargo())) {
-            return "redirect:/usuarios?somenteLeitura=true";
-        }
+        Usuario usuario = usuarioService.cadastrarCliente(
+                dados.nome(),
+                dados.email(),
+                dados.senha()
+        );
 
-        if (!"SUPERUSUARIO".equals(usuarioLogado.getCargo()) && !"GERENTE".equals(usuarioLogado.getCargo())) {
-            return "redirect:/estoque?semPermissao=true";
-        }
-
-        model.addAttribute("usuario", new Usuario());
-        model.addAttribute("usuarioLogado", usuarioLogado);
-
-        List<String> cargosPermitidos = new ArrayList<>();
-        if ("SUPERUSUARIO".equals(usuarioLogado.getCargo())) {
-            cargosPermitidos.add("PROPRIETARIO");
-            cargosPermitidos.add("GERENTE");
-            cargosPermitidos.add("VENDEDOR");
-            cargosPermitidos.add("SECRETARIO");
-            cargosPermitidos.add("CONTABIL");
-        } else if ("GERENTE".equals(usuarioLogado.getCargo())) {
-            cargosPermitidos.add("VENDEDOR");
-            cargosPermitidos.add("SECRETARIO");
-            cargosPermitidos.add("CONTABIL");
-        }
-
-        model.addAttribute("cargosPermitidos", cargosPermitidos);
-        return "form-usuario";
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(converterUsuario(usuario));
     }
 
-    @PostMapping(value = "/salvar", consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public String salvarUsuario(Usuario novoUsuario, HttpSession session, Model model) {
-        Usuario usuarioLogado = (Usuario) session.getAttribute("usuarioLogado");
-        if (usuarioLogado == null) {
-            return "redirect:/login";
-        }
+    // Autenticação e geração do JWT
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest dados
+    ) {
 
-        // Proprietário é apenas leitura
-        if ("PROPRIETARIO".equals(usuarioLogado.getCargo())) {
-            return "redirect:/usuarios?somenteLeitura=true";
-        }
+        Usuario usuario = usuarioService.autenticar(
+                dados.email(),
+                dados.senha()
+        ).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "E-mail ou senha inválidos."
+        ));
 
-        if ("GERENTE".equals(usuarioLogado.getCargo())) {
-            if ("SUPERUSUARIO".equals(novoUsuario.getCargo()) || "GERENTE".equals(novoUsuario.getCargo()) || "PROPRIETARIO".equals(novoUsuario.getCargo())) {
-                return "redirect:/usuarios?erroPermissao=true";
-            }
-        } else if (!"SUPERUSUARIO".equals(usuarioLogado.getCargo())) {
-            return "redirect:/estoque?semPermissao=true";
-        }
+        String token = jwtService.gerarToken(usuario);
 
-        Usuario usuarioSalvo = usuarioService.save(novoUsuario, usuarioLogado.getId(), usuarioLogado.getNome(), usuarioLogado.getCargo());
+        LoginResponse resposta = new LoginResponse(
+                token,
+                "Bearer",
+                3600,
+                converterUsuario(usuario)
+        );
 
-        logger.info("AÇÃO: Novo Usuário Cadastrado | RESPONSÁVEL: {} ({}) | NOVO: {} (ID: {})",
-                usuarioLogado.getNome(), usuarioLogado.getCargo(), usuarioSalvo.getNome(), usuarioSalvo.getId());
-
-        return "redirect:/usuarios?sucesso=true";
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(resposta);
     }
 
-    @GetMapping("/deletar/{id}")
-    public String deletarUsuario(@PathVariable Long id, HttpSession session) {
-        Usuario usuarioLogado = (Usuario) session.getAttribute("usuarioLogado");
-        if (usuarioLogado == null) {
-            return "redirect:/login";
-        }
+    // Listagem de clientes exclusiva do administrador
+    @GetMapping("/clientes")
+    public ResponseEntity<List<UsuarioResponse>> listarClientes() {
 
-        // Proprietário é apenas leitura
-        if ("PROPRIETARIO".equals(usuarioLogado.getCargo())) {
-            return "redirect:/usuarios?somenteLeitura=true";
-        }
+        List<UsuarioResponse> clientes =
+                usuarioService.findAll()
+                        .stream()
+                        .filter(usuario ->
+                                "CLIENTE".equals(usuario.getCargo()))
+                        .map(this::converterUsuario)
+                        .toList();
 
-        Optional<Usuario> usuarioOpt = usuarioClient.buscarPorId(id);
-        if (usuarioOpt.isPresent()) {
-            Usuario usuarioADeletar = usuarioOpt.get();
-
-            if (usuarioADeletar.getId().equals(usuarioLogado.getId())) {
-                return "redirect:/usuarios?erroProprioUsuario=true";
-            }
-
-            if ("GERENTE".equals(usuarioLogado.getCargo())) {
-                if ("SUPERUSUARIO".equals(usuarioADeletar.getCargo()) || "GERENTE".equals(usuarioADeletar.getCargo()) || "PROPRIETARIO".equals(usuarioADeletar.getCargo())) {
-                    return "redirect:/usuarios?erroPermissao=true";
-                }
-            } else if (!"SUPERUSUARIO".equals(usuarioLogado.getCargo())) {
-                return "redirect:/estoque?semPermissao=true";
-            }
-
-            usuarioService.deleteById(id, usuarioLogado.getId(), usuarioLogado.getNome(), usuarioLogado.getCargo());
-            logger.info("AÇÃO: Usuário Deletado | RESPONSÁVEL: {} | EXCLUÍDO: {}", usuarioLogado.getNome(), usuarioADeletar.getNome());
-        }
-
-        return "redirect:/usuarios?deletado=true";
+        return ResponseEntity.ok(clientes);
     }
+
+    // Converter entidade em resposta segura
+    private UsuarioResponse converterUsuario(Usuario usuario) {
+
+        return new UsuarioResponse(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getLogin(),
+                usuario.getCargo(),
+                usuario.getAtivo()
+        );
+    }
+
+    // DTO para cadastro
+    public record CadastroRequest(
+
+            @NotBlank
+            @Size(max = 120)
+            String nome,
+
+            @NotBlank
+            @Email
+            @Size(max = 160)
+            String email,
+
+            @NotBlank
+            @Size(min = 8, max = 72)
+            String senha
+
+    ) {}
+
+    // DTO para login
+    public record LoginRequest(
+
+            @NotBlank
+            @Email
+            @Size(max = 160)
+            String email,
+
+            @NotBlank
+            @Size(max = 72)
+            String senha
+
+    ) {}
+
+    // DTO de resposta sem senha
+    public record UsuarioResponse(
+            Long id,
+            String nome,
+            String email,
+            String perfil,
+            Boolean ativo
+    ) {}
+
+    // DTO de resposta da autenticação
+    public record LoginResponse(
+            String token,
+            String tipo,
+            long expiresIn,
+            UsuarioResponse usuario
+    ) {}
 }

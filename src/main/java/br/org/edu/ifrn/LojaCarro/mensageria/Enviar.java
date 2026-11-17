@@ -1,11 +1,16 @@
+
 package br.org.edu.ifrn.LojaCarro.mensageria;
 
 import br.org.edu.ifrn.LojaCarro.dto.LogOperacaoDTO;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.MessageProperties;
+
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -15,101 +20,183 @@ import java.nio.charset.StandardCharsets;
 @Component("enviar")
 public class Enviar {
 
-    // Configurações do broker RabbitMQ informado pelo professor (IP: 15.228.215.36)
-    public static final String HOST = "15.228.215.36";
+    // Configurações pelas variáveis de ambiente
+    public static final boolean ENABLED =
+            Boolean.parseBoolean(
+                    System.getenv().getOrDefault(
+                            "RABBITMQ_ENABLED", "false"
+                    )
+            );
+
+    public static final String HOST =
+            System.getenv().getOrDefault(
+                    "RABBITMQ_HOST", "localhost"
+            );
+
     public static final int PORT = 5672;
-    public static final String USER = "aluno";
-    public static final String PASS = "12345";
-    public static final String DEFAULT_QUEUE = "brunno";
 
-    protected static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    public static final String USER =
+            System.getenv().getOrDefault(
+                    "RABBITMQ_USER", ""
+            );
 
-    /**
-     * Ponto de entrada para testes diretos de envio isolado para cada CRUD.
-     */
-    public static void main(String[] args) {
-        System.out.println("=== TESTE DE ENVIO INDIVIDUAL POR CRUD (RabbitMQ: " + HOST + ") ===");
+    public static final String PASS =
+            System.getenv().getOrDefault(
+                    "RABBITMQ_PASSWORD", ""
+            );
 
-        // 1. Envio separado para o CRUD de Carro
-        enviarLogCarro(1L, "Corolla XEi", 2024, 148000.0, "CADASTRO", "Carlos Gerente");
+    public static final String DEFAULT_QUEUE =
+            System.getenv().getOrDefault(
+                    "RABBITMQ_QUEUE", "brunno"
+            );
 
-        // 2. Envio separado para o CRUD de Vendas
-        enviarLogVenda(10L, "Civic Touring", "Marcos Silva", 165000.0, "PIX", "CADASTRO", "Ana Vendedora");
+    protected static final ObjectMapper objectMapper =
+            new ObjectMapper()
+                    .registerModule(new JavaTimeModule());
 
-        // 3. Envio separado para o CRUD Contábil
-        enviarLogContabil(5L, "Recebimento Entrada Venda Veículo", "ENTRADA", 50000.0, "VENDA", "CADASTRO", "Roberto Contador");
+    // Envio direto de mensagens ao RabbitMQ
+    public static void enviarMensagem(
+            String message,
+            String queue
+    ) {
 
-        // 4. Envio separado para o CRUD de Test Drive
-        enviarLogTesteDrive(3L, "Juliana Costa", "Polo Track (2024)", "2026-11-05 14:00:00", "AGENDADO", "CADASTRO", "Ana Vendedora");
+        // Permite executar a aplicação sem RabbitMQ
+        if (!ENABLED) {
 
-        // 5. Envio separado para o CRUD de Usuário
-        enviarLogUsuario(8L, "Mariana Consultora", "VENDEDOR", "mariana", "CADASTRO", "Admin");
-    }
+            System.out.println(
+                    "[AUDITORIA] RabbitMQ desativado."
+            );
 
-    /**
-     * Método estático para envio de mensagem direta na fila RabbitMQ.
-     *
-     * @param message Mensagem (texto ou JSON)
-     * @param queue   Nome da fila (ex: "guilherme_brunno")
-     */
-    public static void enviarMensagem(String message, String queue) {
+            return;
+        }
+
+        // Valida as credenciais
+        if (USER.isBlank() || PASS.isBlank()) {
+
+            System.err.println(
+                    "[RABBITMQ] Credenciais não configuradas."
+            );
+
+            return;
+        }
+
+        if (message == null || message.isBlank()) {
+            return;
+        }
+
+        String fila = queue == null || queue.isBlank()
+                ? DEFAULT_QUEUE
+                : queue;
+
         ConnectionFactory factory = new ConnectionFactory();
 
-        try {
-            factory.setHost(HOST);
-            factory.setPort(PORT);
-            factory.setUsername(USER);
-            factory.setPassword(PASS);
-        } catch (Exception e) {
-            System.out.println("Erro ao configurar conexão: " + e.getMessage());
-            e.printStackTrace();
-        }
+        factory.setHost(HOST);
+        factory.setPort(PORT);
+        factory.setUsername(USER);
+        factory.setPassword(PASS);
 
-        try (Connection connection = factory.newConnection(); Channel channel = connection.createChannel()) {
-            channel.queueDeclare(queue, true, false, false, null);
-            channel.basicPublish("", queue, null, message.getBytes(StandardCharsets.UTF_8));
-            System.out.println("MENSAGEM ENVIADA para [" + queue + "] = '" + message + "'");
+        // Evita longas esperas quando o servidor está offline
+        factory.setConnectionTimeout(3000);
+        factory.setHandshakeTimeout(3000);
+
+        try (
+                Connection connection = factory.newConnection();
+                Channel channel = connection.createChannel()
+        ) {
+
+            channel.queueDeclare(
+                    fila,
+                    true,
+                    false,
+                    false,
+                    null
+            );
+
+            channel.confirmSelect();
+
+            channel.basicPublish(
+                    "",
+                    fila,
+                    MessageProperties.PERSISTENT_BASIC,
+                    message.getBytes(StandardCharsets.UTF_8)
+            );
+
+            // Aguarda confirmação do broker
+            channel.waitForConfirmsOrDie(3000);
+
+            System.out.println(
+                    "[RABBITMQ] Mensagem publicada na fila: "
+                            + fila
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            System.err.println(
+                    "[RABBITMQ] Envio interrompido."
+            );
+
         } catch (Exception e) {
-            System.out.println("Erro ao enviar mensagem para RabbitMQ (" + HOST + "): " + e.getMessage());
-            e.printStackTrace();
+
+            System.err.println(
+                    "[RABBITMQ] Falha na comunicação com: "
+                            + HOST
+            );
         }
     }
 
-    /**
-     * Envia o DTO completo da operação convertido para JSON para a fila padrão.
-     *
-     * @param logDTO Objeto contendo os dados da operação
-     */
+    // Envia o DTO para a fila padrão
     public void enviar(LogOperacaoDTO logDTO) {
+
         enviar(logDTO, DEFAULT_QUEUE);
     }
 
-    /**
-     * Envia o DTO para uma fila específica (permite filas separadas por CRUD caso desejado).
-     */
-    public void enviar(LogOperacaoDTO logDTO, String queue) {
-        try {
-            String json = objectMapper.writeValueAsString(logDTO);
-            enviarMensagem(json, queue != null ? queue : DEFAULT_QUEUE);
-        } catch (Exception e) {
-            System.out.println("Erro ao serializar DTO para JSON: " + e.getMessage());
-        }
+    // Envia o DTO para uma fila específica
+    public void enviar(
+            LogOperacaoDTO logDTO,
+            String queue
+    ) {
+
+        enviarMensagemDTO(logDTO, queue);
     }
 
-    /**
-     * Helper para envio de log de qualquer entidade (CONTABIL, TESTE_DRIVE, USUARIO, CARRO, VENDAS).
-     */
-    public void enviarLogEntidade(String entidade, String tipoOperacao, Long referenciaId,
-                                  Double valor, Long usuarioId, String usuarioNome,
-                                  String usuarioCargo, String detalhes) {
-        LogOperacaoDTO dto = new LogOperacaoDTO(entidade, tipoOperacao, referenciaId, valor, usuarioId, usuarioNome, usuarioCargo, detalhes);
+    // Envio de auditoria de qualquer entidade
+    public void enviarLogEntidade(
+            String entidade,
+            String tipoOperacao,
+            Long referenciaId,
+            Double valor,
+            Long usuarioId,
+            String usuarioNome,
+            String usuarioCargo,
+            String detalhes
+    ) {
+
+        LogOperacaoDTO dto = new LogOperacaoDTO(
+                entidade,
+                tipoOperacao,
+                referenciaId,
+                valor,
+                usuarioId,
+                usuarioNome,
+                usuarioCargo,
+                detalhes
+        );
+
         enviar(dto);
     }
 
-    /**
-     * 1. Envio isolado de log para o CRUD de CARRO
-     */
-    public static void enviarLogCarro(Long id, String modelo, Integer ano, Double preco, String operacao, String usuario) {
+    // Auditoria de veículos
+    public static void enviarLogCarro(
+            Long id,
+            String modelo,
+            Integer ano,
+            Double preco,
+            String operacao,
+            String usuario
+    ) {
+
         LogOperacaoDTO dto = new LogOperacaoDTO(
                 operacao,
                 id,
@@ -118,103 +205,163 @@ public class Enviar {
                 preco,
                 1L,
                 usuario != null ? usuario : "Sistema",
-                "ESTOQUE",
-                String.format("Carro %s: %s (%d) por R$ %.2f", operacao, modelo, ano, preco)
+                "ADMIN",
+                String.format(
+                        "Carro %s: %s (%d) por R$ %.2f",
+                        operacao,
+                        modelo,
+                        ano,
+                        preco
+                )
         );
+
         dto.setEntidade("CARRO");
+
         enviarMensagemDTO(dto, DEFAULT_QUEUE);
     }
 
-    /**
-     * 2. Envio isolado de log para o CRUD de VENDAS
-     */
-    public static void enviarLogVenda(Long id, String modelo, String cliente, Double valor, String formaPagamento, String operacao, String vendedor) {
-        double taxa = 0.03; // Vendedor: 3%
-        double comissao = Math.round(((valor != null ? valor : 0.0) * taxa) * 100.0) / 100.0;
-        String detalhes = String.format("Venda %s: %s para %s por R$ %.2f (%s) | Vendedor: %s (VENDEDOR) | Comissão (3.0%%): R$ %.2f",
-                operacao, modelo, cliente, valor, formaPagamento, vendedor != null ? vendedor : "Vendedor", comissao);
+    // Auditoria de test drives
+    public static void enviarLogTesteDrive(
+            Long id,
+            String cliente,
+            String modelo,
+            String dataHora,
+            String status,
+            String operacao,
+            String responsavel
+    ) {
 
-        LogOperacaoDTO dto = new LogOperacaoDTO(
-                "VENDAS",
-                operacao,
-                id,
-                valor,
-                1L,
-                vendedor != null ? vendedor : "Vendedor",
-                "VENDEDOR",
-                detalhes
-        );
-        dto.setCarroModelo(modelo);
-        dto.setPercentualComissao(3.0);
-        dto.setValorComissao(comissao);
-        enviarMensagemDTO(dto, DEFAULT_QUEUE);
-    }
-
-    /**
-     * 3. Envio isolado de log para o CRUD CONTÁBIL
-     */
-    public static void enviarLogContabil(Long id, String descricao, String tipo, Double valor, String categoria, String operacao, String usuario) {
-        LogOperacaoDTO dto = new LogOperacaoDTO(
-                "CONTABIL",
-                operacao,
-                id,
-                valor,
-                1L,
-                usuario != null ? usuario : "Contador",
-                "CONTABIL",
-                String.format("Lançamento Contábil %s (%s): %s | R$ %.2f [%s]", operacao, tipo, descricao, valor, categoria)
-        );
-        enviarMensagemDTO(dto, DEFAULT_QUEUE);
-    }
-
-    /**
-     * 4. Envio isolado de log para o CRUD de TESTE DRIVE
-     */
-    public static void enviarLogTesteDrive(Long id, String cliente, String modelo, String dataHora, String status, String operacao, String vendedor) {
         LogOperacaoDTO dto = new LogOperacaoDTO(
                 "TESTE_DRIVE",
                 operacao,
                 id,
                 0.0,
                 1L,
-                vendedor != null ? vendedor : "Vendedor",
-                "VENDEDOR",
-                String.format("Test Drive %s: Cliente %s com %s (%s) - Data: %s", operacao, cliente, modelo, status, dataHora)
+                responsavel != null
+                        ? responsavel : "Sistema",
+                "ADMIN",
+                String.format(
+                        "Test Drive %s: Cliente %s com %s (%s) - Data: %s",
+                        operacao,
+                        cliente,
+                        modelo,
+                        status,
+                        dataHora
+                )
         );
+
         dto.setCarroModelo(modelo);
+
         enviarMensagemDTO(dto, DEFAULT_QUEUE);
     }
 
-    /**
-     * 5. Envio isolado de log para o CRUD de USUÁRIO
-     */
-    public static void enviarLogUsuario(Long id, String nome, String cargo, String login, String operacao, String usuario) {
+    // Auditoria de usuários
+    public static void enviarLogUsuario(
+            Long id,
+            String nome,
+            String cargo,
+            String login,
+            String operacao,
+            String usuario
+    ) {
+
         LogOperacaoDTO dto = new LogOperacaoDTO(
                 "USUARIO",
                 operacao,
                 id,
                 0.0,
                 1L,
-                usuario != null ? usuario : "Admin",
-                "SUPERUSUARIO",
-                String.format("Usuário %s: %s (Cargo: %s, Login: %s)", operacao, nome, cargo, login)
+                usuario != null ? usuario : "Sistema",
+                "ADMIN",
+                String.format(
+                        "Usuário %s: %s (Perfil: %s)",
+                        operacao,
+                        nome,
+                        cargo
+                )
         );
+
         enviarMensagemDTO(dto, DEFAULT_QUEUE);
     }
 
-    private static void enviarMensagemDTO(LogOperacaoDTO dto, String queue) {
+    // Método legado mantido para compatibilidade
+    @Deprecated
+    public static void enviarLogVenda(
+            Long id,
+            String modelo,
+            String cliente,
+            Double valor,
+            String formaPagamento,
+            String operacao,
+            String vendedor
+    ) {
+
+        System.out.println(
+                "[AUDITORIA] Módulo de vendas desativado."
+        );
+    }
+
+    // Método legado mantido para compatibilidade
+    @Deprecated
+    public static void enviarLogContabil(
+            Long id,
+            String descricao,
+            String tipo,
+            Double valor,
+            String categoria,
+            String operacao,
+            String usuario
+    ) {
+
+        System.out.println(
+                "[AUDITORIA] Módulo contábil desativado."
+        );
+    }
+
+    // Converte o DTO para JSON
+    private static void enviarMensagemDTO(
+            LogOperacaoDTO dto,
+            String queue
+    ) {
+
+        if (dto == null) {
+            return;
+        }
+
         try {
-            String json = objectMapper.writeValueAsString(dto);
+
+            String json =
+                    objectMapper.writeValueAsString(dto);
+
             enviarMensagem(json, queue);
+
         } catch (Exception e) {
-            System.out.println("Erro ao converter DTO para JSON: " + e.getMessage());
+
+            System.err.println(
+                    "[RABBITMQ] Erro ao serializar DTO."
+            );
         }
     }
 
-    /**
-     * Sobrecarga de conveniência para envio de texto direto.
-     */
+    // Envio de texto direto
     public void enviar(String mensagem) {
+
         enviarMensagem(mensagem, DEFAULT_QUEUE);
+    }
+
+    // Verificação isolada da configuração
+    public static void main(String[] args) {
+
+        System.out.println(
+                "RabbitMQ habilitado: " + ENABLED
+        );
+
+        System.out.println(
+                "Servidor: " + HOST
+        );
+
+        System.out.println(
+                "Fila: " + DEFAULT_QUEUE
+        );
     }
 }
