@@ -1,10 +1,11 @@
+
 name: Java CI with Maven
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: ["dev", "TrabalhoFinal"]
   pull_request:
-    branches: [ "dev" ]
+    branches: ["dev", "TrabalhoFinal"]
 
 jobs:
   build:
@@ -22,6 +23,7 @@ jobs:
 
       - name: Grant execute permission to Maven Wrapper
         run: chmod +x mvnw
+
       - name: Build project
         run: ./mvnw -B clean package -DskipTests
 
@@ -43,4 +45,6 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run unit tests
+        env:
+          RABBITMQ_ENABLED: "false"
         run: ./mvnw -B test
