@@ -39,3 +39,23 @@ logs/
 /IMG/
 
 relatorio-testes.txt
+
+# Ambiente virtual Python
+frontend/.venv/
+frontend/venv/
+
+# Banco local e sessoes Django
+frontend/db.sqlite3
+frontend/db.sqlite3-*
+
+# Arquivos temporarios Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Variaveis de ambiente
+frontend/.env
+frontend/.env.*
+
+# Arquivos gerados
+frontend/staticfiles/

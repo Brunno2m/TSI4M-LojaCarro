@@ -1,9 +1,7 @@
-
 package br.org.edu.ifrn.LojaCarro.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import jakarta.servlet.DispatcherType;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,150 +37,60 @@ public class SecurityConfig {
 
     @Bean
     public SecretKey jwtSecretKey() {
-
         byte[] chave = Base64.getDecoder().decode(segredo);
-
         if (chave.length < 32) {
-            throw new IllegalStateException(
-                    "A chave JWT deve possuir pelo menos 32 bytes."
-            );
+            throw new IllegalStateException("A chave JWT deve possuir pelo menos 32 bytes.");
         }
-
         return new SecretKeySpec(chave, "HmacSHA256");
     }
 
     @Bean
     public JwtEncoder jwtEncoder(SecretKey chave) {
-        return new NimbusJwtEncoder(
-                new ImmutableSecret<>(chave)
-        );
+        return new NimbusJwtEncoder(new ImmutableSecret<>(chave));
     }
 
     @Bean
     public JwtDecoder jwtDecoder(SecretKey chave) {
-
-        NimbusJwtDecoder decoder =
-                NimbusJwtDecoder.withSecretKey(chave)
-                        .macAlgorithm(MacAlgorithm.HS256)
-                        .build();
-
-        decoder.setJwtValidator(
-                JwtValidators.createDefaultWithIssuer(
-                        "loja-carros"
-                )
-        );
-
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave)
+                .macAlgorithm(MacAlgorithm.HS256).build();
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer("loja-carros"));
         return decoder;
     }
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-
-        JwtGrantedAuthoritiesConverter roles =
-                new JwtGrantedAuthoritiesConverter();
-
+        JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
         roles.setAuthoritiesClaimName("perfil");
         roles.setAuthorityPrefix("ROLE_");
-
-        JwtAuthenticationConverter converter =
-                new JwtAuthenticationConverter();
-
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(roles);
-
         return converter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
-    ) throws Exception {
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
-
-                .formLogin(AbstractHttpConfigurer::disable)
-
-                .httpBasic(AbstractHttpConfigurer::disable)
-
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
-                )
-
-                .authorizeHttpRequests(auth -> auth
-
-                        .dispatcherTypeMatchers(
-                                DispatcherType.ERROR
-                        ).permitAll()
-
-                        // Cadastro e login públicos
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/auth/cadastro",
-                                "/auth/login"
-                        ).permitAll()
-
-                        // Rotas administrativas
-                        .requestMatchers(
-                                "/carro/admin",
-                                "/carro/admin/**",
-                                "/carro/logs",
-                                "/auth/clientes"
-                        ).hasRole("ADMIN")
-
-                        // Catálogo público
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/carro",
-                                "/carro/listarCarros"
-                        ).permitAll()
-
-                        // Detalhes e fotografias públicas
-                        .requestMatchers(
-                                new RegexRequestMatcher(
-                                        "^/carro/[0-9]+(?:/foto)?(?:\\?.*)?$",
-                                        "GET"
-                                )
-                        ).permitAll()
-
-                        // Cadastro de veículos
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/carro",
-                                "/carro/salvar"
-                        ).hasRole("ADMIN")
-
-                        // Atualização de veículos
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/carro/{id}"
-                        ).hasRole("ADMIN")
-
-                        // Exclusão lógica
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/carro/{id}"
-                        ).hasRole("ADMIN")
-
-                        // Marcar como vendido
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/carro/{id}/vender"
-                        ).hasRole("ADMIN")
-
-                        // Bloqueia endpoints antigos
-                        .anyRequest().denyAll()
-                )
-
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt ->
-                                jwt.jwtAuthenticationConverter(
-                                        jwtAuthenticationConverter()
-                                )
-                        )
-                );
-
+            .csrf(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/cadastro", "/auth/login").permitAll()
+                // GET /auth/clientes existente, POST e DELETE administrativos novos.
+                .requestMatchers("/carro/admin", "/carro/admin/**", "/carro/logs",
+                        "/auth/clientes", "/auth/clientes/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/carro", "/carro/listarCarros").permitAll()
+                .requestMatchers(new RegexRequestMatcher(
+                        "^/carro/[0-9]+(?:/foto)?(?:\\?.*)?$", "GET")).permitAll()
+                .requestMatchers(HttpMethod.POST, "/carro", "/carro/salvar").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/carro/{id}").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/carro/{id}").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/carro/{id}/vender").hasRole("ADMIN")
+                .anyRequest().denyAll()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt ->
+                    jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 }

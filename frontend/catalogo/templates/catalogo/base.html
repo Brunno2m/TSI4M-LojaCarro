@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}LojaCarro{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'catalogo/estilo.css' %}">
+</head>
+<body>
+<a class="skip" href="#conteudo">Ir ao conteúdo</a>
+<header class="topo"><div class="container nav">
+<a class="marca" href="{% url 'catalogo:inicio' %}"><span class="marca-icone">LC</span> Loja<span>Carro</span></a>
+<nav aria-label="Menu principal">
+<a href="{% url 'catalogo:inicio' %}">Início</a>
+<a href="{% url 'catalogo:listagem' %}">Veículos</a>
+{% if usuario_sessao %}
+{% if usuario_sessao.perfil == 'ADMIN' %}<a href="{% url 'catalogo:painel' %}">Painel</a>{% endif %}
+<span class="nav-user" title="Perfil: {{ usuario_sessao.perfil }}">{{ usuario_sessao.nome|default:usuario_sessao.email }}</span>
+<form action="{% url 'catalogo:sair' %}" method="post" class="nav-sair">{% csrf_token %}<button type="submit">Sair</button></form>
+{% else %}
+<a href="{% url 'catalogo:cadastro' %}">Criar conta</a>
+<a class="nav-entrar" href="{% url 'catalogo:entrar' %}">Entrar</a>
+{% endif %}
+</nav></div></header>
+<main id="conteudo">{% block content %}{% endblock %}</main>
+<footer><div class="container footer"><div><strong>LojaCarro</strong><p>Seu próximo veículo começa aqui.</p></div><small>Projeto acadêmico · Desenvolvimento Web na Nuvem · IFRN</small></div></footer>
+</body></html>

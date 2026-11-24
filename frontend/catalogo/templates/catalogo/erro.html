@@ -1,0 +1,1 @@
+{% extends 'catalogo/base.html' %}{% block title %}{{ titulo }} | LojaCarro{% endblock %}{% block content %}<section class="container section"><div class="empty"><h1>{{ titulo }}</h1><p>{{ mensagem }}</p><a class="btn" href="{% url 'catalogo:listagem' %}">Voltar ao catálogo</a></div></section>{% endblock %}

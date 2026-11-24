@@ -1,351 +1,312 @@
 # LojaCarro — Trabalho Final
 
-Sistema de gerenciamento de uma loja de veículos, desenvolvido para a disciplina de Desenvolvimento Web na Nuvem do IFRN.
+Projeto desenvolvido para a disciplina **Desenvolvimento Web na Nuvem**, do IFRN.
 
-**Branch de desenvolvimento:** `TrabalhoFinal`  
-**Etapa atual:** Semana 1 — estruturação e implementação do backend  
-**Última atualização deste documento:** 17/11/2026
+**Branch utilizada:** `TrabalhoFinal`  
+**Situação:** backend da Semana 1 concluído; frontend Django e integração da Semana 2 implementados e testados nos principais fluxos.  
+**Atualização:** 23/11/2026.
 
-## Sobre o projeto
+## 1. Sobre o projeto
 
-O LojaCarro surgiu a partir de um projeto desenvolvido anteriormente na disciplina. Nesta nova etapa, a ideia é aproveitar a estrutura existente e adaptá-la aos requisitos do trabalho final, sem começar novamente do zero.
+O LojaCarro é um sistema para uma loja de veículos. O visitante pode consultar os carros disponíveis, ver fotografias e pesquisar por marca, modelo e preço. Um cliente pode criar sua conta e entrar no sistema. Já o administrador pode gerenciar os veículos e os cadastros de clientes.
 
-Na primeira semana, o foco foi reorganizar o backend, atualizar o banco de dados e preparar uma API REST que permita cadastrar veículos com fotografias, disponibilizar um catálogo público e controlar o acesso às operações administrativas. Também foi implementada a autenticação por JWT, diferenciando os usuários em dois perfis: administrador e cliente.
+O trabalho aproveita um projeto Java existente, que foi reorganizado para atender aos requisitos atuais da disciplina. Em vez de utilizar Angular, escolhemos **Django** para a interface, conforme a liberdade de escolha informada pelo professor.
 
-A interface Angular e as regras completas de agendamento de Test Drive serão desenvolvidas nas etapas seguintes.
+## 2. Como o sistema funciona
 
-## Tecnologias utilizadas
+```text
+Navegador
+    |
+    v
+Django (http://127.0.0.1:8000)
+    |  Requisições HTTP/JSON e JWT
+    v
+Spring Boot (http://localhost:8080)
+    |                 |
+    v                 v
+MySQL (carros)    Pasta IMG/ (fotografias)
 
-- Java 17 e Spring Boot 3.5.7;
-- Spring Web, Spring Data JPA e Hibernate;
-- Spring Security, JWT (HS256) e BCrypt;
-- MySQL e H2 (ambiente de testes);
-- RabbitMQ e Log4j2;
-- Maven Wrapper;
-- TwelveMonkeys ImageIO, para suporte a WebP;
-- JUnit 5, Mockito, Postman e GitHub Actions.
+Spring Boot também pode enviar eventos de auditoria ao RabbitMQ.
+```
 
-O IntelliJ IDEA foi utilizado no desenvolvimento, e o MySQL Workbench auxiliou na criação e conferência do banco de dados.
+O **Django mostra as páginas e recebe os formulários**. O **Spring Boot aplica as regras do sistema, valida o JWT e acessa o MySQL**. Os dados de usuários e veículos não são gravados diretamente pelo Django.
 
-## O que foi desenvolvido na Semana 1
+O Django utiliza um pequeno banco SQLite local **somente para sessões de acesso**. Esse arquivo não substitui o MySQL da aplicação.
 
-### Reorganização do projeto
+### Tecnologias
 
-A branch `TrabalhoFinal` foi criada para manter as alterações do trabalho final separadas da branch `dev`. A primeira atividade foi revisar o código existente e retirar os módulos que não seriam mais utilizados, principalmente os de vendas, contabilidade e administração legada.
-
-Ao todo, foram removidas 19 classes: `DataInitializer`; `AdmController`, `AdmWebController`, `ContabilController`, `ContabilWebController`, `VendaController` e `VendaWebController`; `Contabil` e `Venda`; `ContabilRepository` e `VendaRepository`; `ContabilService` e `VendaService`; `EnviarContabil` e `EnviarVenda`; além dos testes `AdmControllerTest`, `EnviarModulosTest`, `ContabilServiceTest` e `VendaServiceTest`.
-
-As entidades, repositórios, serviços, controllers, classes de mensageria e testes restantes foram revisados para se adequar à nova proposta. Alguns componentes e templates antigos ainda permanecem no projeto por compatibilidade, mas as rotas legadas não previstas na configuração de segurança estão bloqueadas.
-
-### RF01 — Gerenciamento de veículos
-
-O cadastro de veículos passou a contemplar marca, modelo, ano de fabricação, ano do modelo, cor, quilometragem, combustível, transmissão, preço, descrição, situação e fotografia principal.
-
-O administrador pode cadastrar, consultar, atualizar e inativar veículos. Também é possível registrar a situação `VENDIDO`. A exclusão é lógica: o registro permanece no banco com a situação `INATIVO`, mas deixa de aparecer no catálogo público. O catálogo apresenta apenas veículos `DISPONIVEL` e permite filtrar por marca, modelo, faixa de preço e ano do modelo.
-
-### RF02 — Fotografias dos veículos
-
-Foi criado o `ImagemService` para tratar os arquivos recebidos pelo backend. No cadastro, a fotografia é enviada junto com os dados do veículo por meio de uma requisição `multipart/form-data`.
-
-São aceitas imagens JPG, JPEG, PNG e WebP de até 5 MB (5 MiB). O serviço verifica o conteúdo do arquivo, não apenas sua extensão, e gera um nome próprio para evitar colisões. As fotografias são armazenadas no diretório `IMG/`, e o banco guarda o caminho do arquivo. Na atualização de um veículo, a imagem existente pode ser mantida quando não for enviada uma nova fotografia.
-
-O diretório `IMG/` está no `.gitignore`, pois seus arquivos são gerados durante a execução. Os formatos de imagem, o limite de tamanho, a rejeição de arquivos inválidos e a recuperação das fotografias foram testados no ambiente local.
-
-### RF03 — Usuários e autenticação
-
-A autenticação antiga foi substituída por login com e-mail e senha. As senhas são armazenadas como hashes BCrypt, e a senha original não é retornada pela API.
-
-| Perfil | Permissões nesta etapa |
+| Parte | Tecnologias |
 | --- | --- |
-| `ADMIN` | Gerenciar veículos e consultar clientes e registros de auditoria. |
-| `CLIENTE` | Realizar cadastro, autenticar-se e consultar o catálogo público. |
+| Backend | Java 17, Spring Boot 3.5.7, Spring Security, JPA/Hibernate |
+| Frontend | Python, Django 5.2 LTS, HTML, CSS e JavaScript |
+| Banco principal | MySQL (`carros`) |
+| Sessões do frontend | SQLite local do Django |
+| Segurança | Login por e-mail e senha, BCrypt, JWT (1 hora), perfis ADMIN e CLIENTE |
+| Imagens | Arquivos JPG, JPEG, PNG e WebP, armazenados em `IMG/` |
+| Mensageria | RabbitMQ e registros de auditoria |
+| Testes | JUnit, Mockito, H2, Django Test Framework, Postman |
+| Versionamento e automação | Git, GitHub e GitHub Actions |
 
-O cadastro público cria exclusivamente usuários com perfil `CLIENTE`. O administrador inicial é criado de forma controlada pelo `AdminInitializer`, quando habilitado por variáveis de ambiente.
+## 3. O que já foi feito
 
-Durante o login, o `JwtService` gera um token assinado com HS256, válido por uma hora, contendo a identificação e o perfil do usuário. O `SecurityConfig` protege as rotas administrativas. Também foram implementadas a normalização do e-mail, a validação dos dados, a rejeição de e-mails duplicados, de senhas incorretas e de usuários inativos.
+### Semana 1 — Backend
 
-### Mensageria e auditoria
+- Reorganização das classes Java e retirada dos módulos antigos que não fazem parte do trabalho final.
+- Criação do banco `carros` com quatro tabelas: `usuario`, `carro`, `agendamento` e `log_operacao`.
+- Cadastro, consulta, edição, venda e desativação lógica de veículos.
+- Upload e validação de fotografias. A foto é mantida na edição quando nenhuma imagem nova é enviada.
+- Catálogo público com filtros e exibição apenas dos veículos `DISPONIVEL`.
+- Cadastro de clientes, autenticação JWT e proteção das rotas por perfil.
+- Preparação das classes de envio e recebimento de eventos RabbitMQ.
+- Revisão dos testes Java e configuração de execução automática no GitHub Actions.
 
-As classes `Enviar`, `Receber`, `EnviarCarro`, `EnviarUsuario`, `EnviarTesteDrive` e `MensageriaApplication`, além do `LogOperacaoDTO`, foram adequadas à estrutura atual.
+### Semana 2 — Frontend Django
 
-O produtor utiliza parâmetros externos para conexão com o RabbitMQ. O consumidor foi ajustado para gravar os eventos de auditoria pelo repositório JPA, sem o fallback JDBC antigo. As operações de usuários e veículos geram eventos com a identificação da entidade, da ação e do responsável.
+- Página inicial e catálogo público com fotografias, detalhes e filtros.
+- Integração real com a API Spring Boot e o banco MySQL.
+- Cadastro público de clientes e tela de login.
+- Sessão no Django utilizando o token JWT gerado pelo Spring Boot.
+- Painel administrativo com informações do estoque.
+- Cadastro e edição de veículos com fotografia, marcação como vendido e desativação lógica.
+- Atualização do catálogo após as alterações feitas pelo administrador.
+- Listagem de clientes, cadastro administrativo de clientes e opção **Excluir acesso**.
+- Bloqueio do painel para usuários com perfil `CLIENTE`.
 
-Para permitir o desenvolvimento e a execução dos testes mesmo quando o servidor RabbitMQ não está acessível, a mensageria pode ser desativada com `RABBITMQ_ENABLED=false`. Nesse modo, não há entrega real das mensagens ao broker. A validação com o servidor do professor e a garantia de entrega de eventos ainda fazem parte das próximas etapas.
+**Importante:** “Excluir acesso” não apaga o cliente do banco. A ação altera `ativo` para `false` (ou `0` no MySQL), preservando o histórico. O cliente desativado não consegue realizar um novo login. Tokens emitidos antes da desativação ainda podem continuar válidos até expirar; a revogação imediata é uma melhoria futura.
 
-## Banco de dados
-
-O banco MySQL recebeu o nome `carros`, conforme solicitado na disciplina. A estrutura anterior foi substituída por quatro tabelas:
-
-| Tabela | Finalidade |
-| --- | --- |
-| `usuario` | Dados cadastrais, perfil, situação da conta e hash da senha. |
-| `carro` | Informações do veículo, disponibilidade e caminho da fotografia. |
-| `agendamento` | Associação entre cliente e veículo, período e estado do Test Drive. |
-| `log_operacao` | Registro das operações para auditoria. |
-
-O script [schema_carros_trabalho_final.sql](database/schema_carros_trabalho_final.sql) contém a criação do banco, das tabelas, dos índices e das restrições de integridade. A estrutura de agendamento foi preparada nesta semana, mas as regras completas de negócio ainda precisam ser implementadas.
-
-No perfil `dev`, o Hibernate utiliza `ddl-auto=validate`, por isso o script precisa ser executado antes de iniciar a aplicação.
-
-## Organização do código
+## 4. Estrutura das pastas
 
 ```text
 TSI4M-LojaCarro/
-├── .github/workflows/maven.yml       # Compilação e testes no GitHub Actions
-├── database/
-│   └── schema_carros_trabalho_final.sql
+├── .github/workflows/        # Automação do backend
+├── database/                 # Script do MySQL
 ├── src/
-│   ├── main/
-│   │   ├── java/br/org/edu/ifrn/LojaCarro/
-│   │   │   ├── client/              # Integrações e compatibilidade
-│   │   │   ├── config/              # Segurança e inicialização
-│   │   │   ├── controllers/         # Rotas e requisições HTTP
-│   │   │   ├── dto/                 # Transferência de dados
-│   │   │   ├── exception/           # Tratamento de exceções
-│   │   │   ├── mensageria/          # Envio e recebimento de eventos
-│   │   │   ├── model/               # Entidades JPA
-│   │   │   ├── repository/          # Consultas ao banco
-│   │   │   ├── security/            # Emissão de tokens JWT
-│   │   │   └── services/            # Regras de negócio e imagens
-│   │   └── resources/              # Configurações e templates legados
-│   └── test/java/                   # Testes automatizados
-├── .gitignore
+│   ├── main/java/            # Spring Boot: controllers, services, models etc.
+│   ├── main/resources/       # Configurações Java
+│   └── test/java/            # Testes Java
+├── frontend/
+│   ├── catalogo/
+│   │   ├── templates/        # Páginas HTML
+│   │   ├── static/           # CSS e imagens estáticas
+│   │   ├── api.py            # Comunicação com o Spring Boot
+│   │   ├── forms.py          # Formulários
+│   │   ├── views.py          # Páginas e ações
+│   │   └── test*.py          # Testes Django
+│   ├── config/               # Configurações do Django
+│   ├── manage.py
+│   ├── requirements.txt
+│   └── README.md             # Detalhes específicos do frontend
+├── IMG/                      # Fotos enviadas (não versionar)
 ├── pom.xml
-├── mvnw
-├── mvnw.cmd
-└── README.md
+├── mvnw.cmd                   # Maven Wrapper para Windows
+└── README.MD                 # Este guia
 ```
 
-O fluxo principal segue a organização Controller → Service → Repository → MySQL. A autenticação e a autorização acontecem antes do acesso às rotas protegidas. O processamento das fotografias e o envio dos eventos possuem componentes próprios.
+## 5. Como executar no Windows (IntelliJ + PowerShell)
 
-## Como executar localmente
+Para trabalhar com o projeto, vamos usar **dois servidores ao mesmo tempo**: Java na porta `8080` e Django na porta `8000`.
 
-### 1. Preparar o ambiente
+### Passo 1 — O que precisa estar instalado
 
-É necessário ter o JDK 17, o Git e o MySQL instalado (MySQL 8.0.16 ou superior, conforme o script). O Maven Wrapper já está no projeto. O RabbitMQ é opcional para os testes locais da Semana 1.
+- Java JDK 17;
+- MySQL e MySQL Workbench;
+- Python 3.14 (ou outra versão compatível com o Django indicado em `requirements.txt`);
+- IntelliJ IDEA ou outro editor;
+- Git.
 
-```bash
-git clone -b TrabalhoFinal https://github.com/Brunno2m/TSI4M-LojaCarro.git
-cd TSI4M-LojaCarro
+O projeto já possui o Maven Wrapper. Não é necessário instalar Maven separadamente.
+
+### Passo 2 — Preparar o MySQL
+
+Abra o MySQL Workbench e confira se o banco `carros` existe. Em uma **instalação nova**, execute o arquivo:
+
+`database/schema_carros_trabalho_final.sql`
+
+**Atenção:** se você já criou as tabelas e cadastrou veículos ou clientes, **não apague nem recrie o banco**. Basta mantê-lo iniciado.
+
+Para conferir os veículos:
+
+```sql
+USE carros;
+SELECT id, marca, modelo, preco, situacao FROM carro ORDER BY id;
 ```
 
-### 2. Configurar o banco
+### Passo 3 — Configurar o Spring Boot
 
-Execute o script `database/schema_carros_trabalho_final.sql` no MySQL Workbench. Em um banco que já possua tabelas antigas, faça backup e confira a estrutura antes de aplicar o script; ele não substitui automaticamente tabelas incompatíveis.
+No IntelliJ, abra **Run → Edit Configurations → Environment variables** e confira:
 
-O perfil `dev` usa a conexão `jdbc:mysql://localhost:3306/carros` e o usuário `root`. Caso utilize outro usuário, ajuste a propriedade `spring.datasource.username` de forma local.
-
-### 3. Configurar as variáveis de ambiente
-
-As variáveis abaixo podem ser configuradas em **Run → Edit Configurations** no IntelliJ ou no terminal que iniciará o backend. Não publique senhas, chaves JWT ou tokens no GitHub.
-
-| Variável | Descrição |
+| Variável | Para que serve |
 | --- | --- |
-| `SERVER` | Perfil de execução. Utilize `dev` nesta etapa. |
-| `DB_PASSWORD` | Senha local do MySQL. |
-| `JWT_SECRET_BASE64` | Chave de assinatura JWT em Base64, com pelo menos 32 bytes após decodificação. |
-| `ADMIN_BOOTSTRAP_ENABLED` | Ativa a criação inicial do administrador (`true` somente quando necessário). |
-| `ADMIN_NOME` | Nome do administrador inicial. |
-| `ADMIN_EMAIL` | E-mail do administrador inicial. |
-| `ADMIN_SENHA` | Senha inicial do administrador. |
-| `RABBITMQ_ENABLED` | Ativa a mensageria. Utilize `false` no desenvolvimento sem broker. |
-| `RABBITMQ_HOST` | Endereço do broker, quando utilizado. |
-| `RABBITMQ_USER` | Usuário autorizado no RabbitMQ. |
-| `RABBITMQ_PASSWORD` | Senha do RabbitMQ. |
-| `RABBITMQ_QUEUE` | Fila de envio. |
-| `RABBITMQ_RECEIVE_QUEUE` | Fila de recebimento. |
+| `SERVER` | Perfil de execução; para desenvolvimento, `dev` |
+| `DB_PASSWORD` | Senha da conexão MySQL local |
+| `JWT_SECRET_BASE64` | Chave JWT em Base64 (mínimo de 32 bytes quando decodificada) |
+| `ADMIN_BOOTSTRAP_ENABLED` | `false` quando o administrador já existe |
+| `RABBITMQ_ENABLED` | `false` para rodar sem broker; `true` para usar RabbitMQ |
+| `RABBITMQ_HOST` | Endereço do servidor RabbitMQ, quando utilizado |
+| `RABBITMQ_USER` | Usuário fornecido para o RabbitMQ |
+| `RABBITMQ_PASSWORD` | Senha fornecida para o RabbitMQ |
+| `RABBITMQ_QUEUE` | Fila de envio, conforme configuração da disciplina |
+| `RABBITMQ_RECEIVE_QUEUE` | Fila de recebimento, conforme configuração da disciplina |
 
-Exemplo para PowerShell, na raiz do projeto. Substitua os valores ilustrativos do banco e da conta administrativa pelos seus próprios dados:
+**Não coloque senhas reais, tokens ou chaves no README ou no GitHub.** Preserve a mesma chave JWT entre reinicializações quando necessário. Se o administrador já foi cadastrado, não é preciso cadastrá-lo outra vez.
 
-```powershell
-$env:SERVER = "dev"
-$env:DB_PASSWORD = "SUA_SENHA_LOCAL"
-$env:RABBITMQ_ENABLED = "false"
+O RabbitMQ não é necessário para consultar o catálogo ou usar o painel local. Para testes sem broker, utilize `RABBITMQ_ENABLED=false`. O projeto usa a porta AMQP `5672` na implementação atual.
 
-# Gera uma chave aleatória para o ambiente local.
-$bytes = New-Object byte[] 32
-$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-$rng.GetBytes($bytes)
-$rng.Dispose()
-$env:JWT_SECRET_BASE64 = [Convert]::ToBase64String($bytes)
+### Passo 4 — Iniciar o backend
 
-# Habilite somente na primeira criação do administrador.
-$env:ADMIN_BOOTSTRAP_ENABLED = "true"
-$env:ADMIN_NOME = "Administrador"
-$env:ADMIN_EMAIL = "admin@example.com"
-$env:ADMIN_SENHA = "SUBSTITUA_POR_UMA_SENHA_FORTE"
-```
-
-Guarde a chave local de forma segura se precisar manter a validade dos tokens entre reinicializações. Após a criação do administrador, defina `ADMIN_BOOTSTRAP_ENABLED=false` e retire a senha inicial da configuração de execução.
-
-### 4. Iniciar a aplicação
-
-No Windows:
+Pelo IntelliJ, execute a classe principal `LojaCarroApplication` com as variáveis configuradas. Como alternativa, no terminal com as mesmas variáveis definidas:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-No Linux ou macOS, após configurar as variáveis no shell:
+Confirme que a API responde em:
 
-```bash
-chmod +x mvnw
-./mvnw spring-boot:run
+- [http://localhost:8080/carro](http://localhost:8080/carro) — lista pública em JSON;
+- `http://localhost:8080/carro/1/foto` — fotografia do veículo de ID 1, se ele existir e estiver disponível.
+
+Se a API não iniciar, confira primeiro o MySQL, a variável `DB_PASSWORD` e a chave `JWT_SECRET_BASE64`.
+
+### Passo 5 — Preparar o frontend Django
+
+Abra **outro terminal PowerShell**, a partir da raiz do repositório:
+
+```powershell
+cd frontend
 ```
 
-A API estará disponível em `http://localhost:8080`. Nesta etapa, a interação com ela é realizada pelo Postman; o frontend Angular ainda não está integrado. Para verificar o funcionamento, faça uma requisição `GET /carro` sem autenticação.
+Se ainda não existir a pasta `.venv`, crie o ambiente virtual:
 
-## Endpoints disponíveis
+```powershell
+py -3.14 -m venv .venv
+```
 
-### Autenticação e usuários
+Instale as dependências:
 
-| Método | Rota | Acesso |
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Na primeira execução do Django, crie as tabelas **de sessão** locais:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py migrate
+```
+
+Essa migration é do SQLite do Django. **Ela não altera as tabelas `usuario`, `carro`, `agendamento` ou `log_operacao` do MySQL.** Nas próximas execuções, normalmente não é necessário repetir esse passo.
+
+Confira a configuração e inicie o frontend:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py check
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+Agora acesse [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+
+> **Dica:** deixe o Spring Boot rodando na porta `8080` e o Django na `8000`. O Django busca os carros pela API `http://localhost:8080`. Se a API estiver desligada, o catálogo não conseguirá carregar os dados.
+
+### Passo 6 — Entrar no sistema
+
+- **Visitante:** pode abrir o catálogo sem login.
+- **Cliente:** usa a página `/cadastro/` para criar conta e `/entrar/` para fazer login.
+- **Administrador:** entra em `/entrar/` com o **mesmo e-mail e senha já usados no Postman**. Não existe uma senha separada para o Django.
+
+Endereços úteis:
+
+| Página | URL local |
+| --- | --- |
+| Início | `http://127.0.0.1:8000/` |
+| Catálogo | `http://127.0.0.1:8000/veiculos/` |
+| Login | `http://127.0.0.1:8000/entrar/` |
+| Cadastro público | `http://127.0.0.1:8000/cadastro/` |
+| Painel do administrador | `http://127.0.0.1:8000/painel/` |
+| Clientes cadastrados | `http://127.0.0.1:8000/painel/clientes/` |
+| Novo cliente (admin) | `http://127.0.0.1:8000/painel/clientes/novo/` |
+| Novo veículo (admin) | `http://127.0.0.1:8000/painel/veiculos/novo/` |
+
+O administrador pode gerenciar os carros e os clientes. Um cliente comum não pode entrar no painel.
+
+**Sobre o login:** o JWT do backend dura uma hora. Ao expirar, entre novamente. Não precisa criar outra conta. Em desenvolvimento, reiniciar o Django pode invalidar sessões caso não esteja definida uma `DJANGO_SECRET_KEY` estável.
+
+## 6. Principais endpoints do Spring Boot
+
+| Método | Endpoint | Quem pode usar |
 | --- | --- | --- |
-| POST | `/auth/cadastro` | Público |
+| GET | `/carro` | Público |
+| GET | `/carro/{id}` e `/carro/{id}/foto` | Público (somente disponível) |
+| POST | `/auth/cadastro` | Público (cria CLIENTE) |
 | POST | `/auth/login` | Público |
 | GET | `/auth/clientes` | ADMIN |
-
-Exemplo de cadastro de cliente (`Content-Type: application/json`):
-
-```json
-{
-  "nome": "Cliente de teste",
-  "email": "cliente@example.com",
-  "senha": "SenhaApenasDeExemplo123"
-}
-```
-
-Para autenticar, envie o e-mail e a senha cadastrados para `POST /auth/login`. A resposta informa o `token`, o tipo `Bearer`, o tempo de expiração e os dados do usuário. Para acessar uma rota administrativa, utilize o token de uma conta `ADMIN` no cabeçalho `Authorization: Bearer <token>`.
-
-### Veículos e auditoria
-
-| Método | Rota | Acesso |
-| --- | --- | --- |
-| GET | `/carro` ou `/carro/listarCarros` | Público |
-| GET | `/carro/{id}` | Público |
-| GET | `/carro/{id}/foto` | Público |
+| POST | `/auth/clientes` | ADMIN (cria CLIENTE) |
+| DELETE | `/auth/clientes/{id}` | ADMIN (desativa CLIENTE) |
 | GET | `/carro/admin` | ADMIN |
-| GET | `/carro/admin/{id}` | ADMIN |
-| GET | `/carro/admin/{id}/foto` | ADMIN |
-| POST | `/carro` ou `/carro/salvar` | ADMIN |
-| PUT | `/carro/{id}` | ADMIN |
-| DELETE | `/carro/{id}` | ADMIN |
+| POST | `/carro` ou `/carro/salvar` | ADMIN (dados + fotografia) |
+| PUT | `/carro/{id}` | ADMIN (atualiza veículo) |
 | PATCH | `/carro/{id}/vender` | ADMIN |
+| DELETE | `/carro/{id}` | ADMIN (desativação lógica) |
 | GET | `/carro/logs` | ADMIN |
 
-O catálogo aceita os parâmetros opcionais `marca`, `modelo`, `precoMinimo`, `precoMaximo` e `anoModelo`.
+O cadastro e a edição de carros enviam duas partes `multipart/form-data`: `dados`, com JSON e tipo `application/json`, e `foto`, com a imagem (obrigatória no cadastro e opcional na edição).
 
-Para cadastrar um veículo no Postman, utilize `POST /carro/salvar` com o token do administrador. Em **Body → form-data**, envie a parte `dados` do tipo texto com o Content-Type da parte definido como `application/json` e a parte `foto` do tipo File, contendo a imagem real. Não configure manualmente o Content-Type global da requisição: o Postman deve gerar o cabeçalho multipart com seu boundary.
+## 7. Testes realizados e como repetir
 
-Exemplo do conteúdo de `dados`:
+### O que já foi confirmado manualmente
 
-```json
-{
-  "marca": "Honda",
-  "modelo": "Civic",
-  "ano": 2023,
-  "anoModelo": 2024,
-  "cor": "Prata",
-  "quilometragem": 25000,
-  "tipoCombustivel": "Gasolina",
-  "tipoTransmissao": "Automatico",
-  "preco": 150000.00,
-  "descricao": "Veiculo de exemplo para testar o cadastro."
-}
-```
+- A API Java retornou seis veículos que também apareciam no MySQL e no catálogo Django, com preços, fotos e filtros corretos.
+- O catálogo apresentou detalhes dos veículos e ocultou os inativos.
+- O login do administrador abriu o painel; o cliente não teve acesso administrativo.
+- O cadastro de veículo com imagem funcionou e apareceu no catálogo público.
+- A edição do veículo, a mudança para `VENDIDO`, a desativação e a volta para `DISPONIVEL` funcionaram.
+- A listagem de clientes funcionou.
+- A opção **Excluir acesso** desativou uma conta de teste: o campo `ativo` passou a `0` no MySQL e uma nova tentativa de login foi rejeitada.
+- A criação administrativa de clientes foi implementada, mas deve ser validada separadamente no navegador caso ainda não tenha sido testada.
 
-A resposta de criação é HTTP 201. Na atualização, envie `dados` e, caso deseje substituir a imagem, uma nova parte `foto`.
+### Testes Java
 
-## Testes realizados
-
-### Testes manuais
-
-A API foi executada localmente e os seguintes cenários foram verificados pelo Postman:
-
-| Cenário | Resultado observado |
-| --- | --- |
-| Listagem pública e consulta individual de veículos disponíveis | 200 |
-| Cadastro de cliente | 201 |
-| Login de administrador e cliente | 200 |
-| Acesso administrativo com perfil ADMIN | 200 |
-| Acesso administrativo com perfil CLIENTE | 403 |
-| Cadastro de veículo com fotografia pelo administrador | 201 |
-| Recuperação da fotografia | 200 |
-| Atualização de veículo pelo administrador | 200 |
-| Cadastro ou atualização de veículo pelo cliente | 403 |
-| Exclusão lógica do veículo pelo administrador | 204 |
-| Consulta pública de veículo inativo | 404 |
-| Cadastro com e-mail já existente | 409 |
-| Login com senha incorreta | 401 |
-
-Também foram verificados o armazenamento da imagem na pasta `IMG`, a situação `INATIVO` no banco, a retirada do veículo do catálogo público e a validação dos formatos e do limite de tamanho das fotografias.
-
-### Testes automatizados
-
-Os testes existentes foram adaptados às alterações do projeto. A primeira execução apresentou falhas devido às referências à estrutura antiga e à falta de configuração JWT no ambiente de testes. Após a revisão, foi possível executar a suíte completa com sucesso.
-
-| Classe | Testes aprovados |
-| --- | ---: |
-| `CarroControllerTest` | 8 |
-| `EnviarTest` | 2 |
-| `ReceberTest` | 6 |
-| `UsuarioServiceTest` | 6 |
-| `TesteDriveServiceTest` | 1 |
-| `LojaCarroApplicationTests` | 1 |
-| **Total** | **24** |
-
-Para repetir a execução no Windows:
+Na raiz do projeto, com o ambiente Java configurado:
 
 ```powershell
 $env:RABBITMQ_ENABLED = "false"
 .\mvnw.cmd clean test
 ```
 
-No Linux ou macOS:
+Na Semana 1, **24 testes Java passaram**. Depois disso foram acrescentados testes para a gestão de clientes e corrigida uma chamada ambígua ao método `enviar`. Por isso, o total atualizado deve ser conferido na próxima execução completa do Maven; não reutilize o número antigo como se fosse o resultado atual.
 
-```bash
-RABBITMQ_ENABLED=false ./mvnw clean test
+### Testes Django
+
+No terminal da pasta `frontend`:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py test catalogo -v 2
 ```
 
-Resultado obtido na execução local:
+A primeira versão do catálogo passou em **8 testes**. Após login e painel administrativo, **26 testes passaram**, sem falhas. A atualização de gestão de clientes acrescentou mais nove testes; execute novamente o comando para confirmar a versão atual.
 
-```text
-Tests run: 24, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
-```
+Os testes automatizados utilizam dados e respostas simuladas quando apropriado. Por isso, também foram feitos os testes reais no navegador com Spring Boot e MySQL.
 
-Os testes unitários simulam as dependências do banco e da mensageria quando necessário. O `LojaCarroApplicationTests` verifica a inicialização do contexto Spring Boot com H2 e uma chave JWT exclusiva de teste. Isso não equivale à validação de todos os endpoints com MockMvc nem à comunicação real com o RabbitMQ.
+### GitHub Actions
 
-### Integração contínua
+O workflow `.github/workflows/maven.yml` executa compilação e testes **Java** na branch `TrabalhoFinal`. A última execução publicada antes desta atualização passou: [ver GitHub Actions](https://github.com/Brunno2m/TSI4M-LojaCarro/actions/runs/44107279404).
 
-O workflow [Java CI with Maven](.github/workflows/maven.yml) foi atualizado para executar a compilação e os testes nas branches `dev` e `TrabalhoFinal`, utilizando o JDK 17. A execução na branch do trabalho final foi concluída com sucesso.
+O pipeline ainda precisa ser ampliado para executar também os testes do Django.
 
-[Consultar a execução do GitHub Actions](https://github.com/Brunno2m/TSI4M-LojaCarro/actions/runs/44103952781).
+## 8. O que falta desenvolver
 
-## Acompanhamento da entrega
+- Regras completas de agendamento de Test Drive: criação, horários, conflitos, cancelamento e permissões.
+- Integração das telas de Test Drive no Django.
+- Mais testes de integração com MockMvc no backend.
+- Testes automatizados Django no GitHub Actions.
+- Verificação ponta a ponta da mensageria RabbitMQ e da persistência dos eventos de auditoria.
+- Revisão de configurações antigas que possam conter credenciais e preparação para implantação em nuvem.
 
-| Atividade | Situação em 17/11/2026 |
-| --- | --- |
-| Criação da branch e reorganização das classes | Concluída |
-| Modelagem e criação das quatro tabelas | Concluída |
-| RF01 — CRUD de veículos | Implementado e testado nos fluxos principais |
-| RF02 — Upload e validação de fotografias | Implementado e testado |
-| RF03 — Cadastro, JWT e controle de acesso | Implementado e testado nos fluxos principais |
-| Revisão dos testes existentes | 24 testes aprovados |
-| GitHub Actions na branch TrabalhoFinal | Execução aprovada |
-| Revisão das configurações legadas e do guia de mensageria | Pendente |
-| Regras de agendamento, conflitos de horários e cancelamentos | Próximas etapas |
-| Testes de integração com MockMvc (mínimo de cinco) | Pendente |
-| Interface Angular e seus testes (mínimo de cinco) | Próximas etapas |
-| Validação do RabbitMQ com o broker real | Pendente |
-| Implantação em nuvem | Próximas etapas |
+## 9. Observações importantes
 
-## Considerações sobre a versão atual
+Este é um projeto acadêmico em desenvolvimento. O ambiente descrito neste README é o **ambiente local de testes**, não uma configuração pronta para produção.
 
-O objetivo desta primeira semana foi estabelecer uma base funcional para o restante do trabalho. O backend já permite executar os principais fluxos de veículos e usuários, com autenticação e persistência local no MySQL. A próxima etapa será avançar nas regras de agendamento de Test Drive e na integração com o frontend.
-
-A configuração recomendada neste documento é a de desenvolvimento local. Antes de utilizar o perfil `prod` ou publicar o sistema na nuvem, é necessário revisar as configurações antigas, retirar referências a credenciais fixas, substituir credenciais reais que tenham sido expostas e validar a mensageria. O guia antigo de RabbitMQ ainda precisa ser atualizado para refletir a arquitetura atual. Nenhuma senha ou chave real deve ser compartilhada na documentação.
+Antes de publicar a aplicação em um servidor, será necessário configurar HTTPS, `DJANGO_SECRET_KEY` estável, `DJANGO_DEBUG=false`, hosts permitidos, armazenamento de imagens, proteção de sessões e credenciais externas seguras. A aplicação Java também precisa passar por uma revisão do perfil `prod` e das configurações legadas do RabbitMQ.
 
 ---
 
-Projeto acadêmico em desenvolvimento — IFRN, disciplina Desenvolvimento Web na Nuvem.
+**Repositório:** [Brunno2m/TSI4M-LojaCarro](https://github.com/Brunno2m/TSI4M-LojaCarro/tree/TrabalhoFinal)  
+**Disciplina:** Desenvolvimento Web na Nuvem — IFRN.

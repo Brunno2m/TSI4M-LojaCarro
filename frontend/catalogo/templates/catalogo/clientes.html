@@ -1,0 +1,43 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Clientes | LojaCarro{% endblock %}
+{% block content %}
+<section class="container section">
+  <div class="section-head">
+    <div>
+      <a class="text-link" href="{% url 'catalogo:painel' %}">← Voltar ao painel</a>
+      <p class="eyebrow" style="margin-top:14px">Área restrita</p>
+      <h1>Clientes cadastrados</h1>
+      <p class="muted">Cadastre novos clientes ou desative acessos antigos.</p>
+    </div>
+    <a href="{% url 'catalogo:painel_cliente_novo' %}" class="btn">+ Cadastrar cliente</a>
+  </div>
+  <div class="tabela-wrap">
+    <table class="tabela">
+      <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for cliente in clientes %}
+        <tr>
+          <td>#{{ cliente.id }}</td>
+          <td><strong>{{ cliente.nome }}</strong></td>
+          <td>{{ cliente.email }}</td>
+          <td>{% if cliente.ativo %}<span class="estado">ATIVO</span>{% else %}<span class="estado estado-inativo">INATIVO</span>{% endif %}</td>
+          <td>
+            {% if cliente.ativo %}
+              <form method="post" action="{% url 'catalogo:painel_cliente_desativar' cliente.id %}" onsubmit="return confirm('Desativar o acesso de {{ cliente.nome|escapejs }}? O registro ficará no banco e não poderá fazer novo login.');">
+                {% csrf_token %}
+                <button type="submit" class="link-button danger">Excluir acesso</button>
+              </form>
+            {% else %}
+              <span class="muted small">Acesso desativado</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nenhum cliente cadastrado.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">A exclusão é lógica (ativo = false). O histórico permanece no MySQL; o cliente deixa de poder realizar novos logins.</p>
+</section>
+{% endblock %}

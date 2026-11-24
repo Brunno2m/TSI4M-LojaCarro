@@ -1,0 +1,24 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Cadastrar cliente | LojaCarro{% endblock %}
+{% block content %}
+<section class="container section auth-wrap">
+  <div class="form-panel">
+    <a class="text-link" href="{% url 'catalogo:painel_clientes' %}">← Voltar à lista de clientes</a>
+    <p class="eyebrow" style="margin-top:18px">Área administrativa</p>
+    <h1>Cadastrar cliente</h1>
+    <p class="muted">O novo usuário terá exclusivamente o perfil CLIENTE. A senha será protegida pelo BCrypt no backend Java.</p>
+    <form method="post" class="stack-form" action="{% url 'catalogo:painel_cliente_novo' %}">
+      {% csrf_token %}
+      {% for erro in formulario.non_field_errors %}<p class="erro-campo" role="alert">{{ erro }}</p>{% endfor %}
+      {% for campo in formulario %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% for erro in campo.errors %}<small class="erro-campo" role="alert">{{ erro }}</small>{% endfor %}
+        </div>
+      {% endfor %}
+      <button class="btn btn-full" type="submit">Cadastrar cliente</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

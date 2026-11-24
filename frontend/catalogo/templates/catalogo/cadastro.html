@@ -1,0 +1,12 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Criar conta | LojaCarro{% endblock %}
+{% block content %}
+<section class="container section auth-wrap"><div class="form-panel">
+<p class="eyebrow">Cadastro de cliente</p><h1>Crie sua conta</h1>
+<p class="muted">O cadastro público cria somente usuários CLIENTE. Administradores são provisionados no backend.</p>
+<form method="post" class="stack-form" action="{% url 'catalogo:cadastro' %}">{% csrf_token %}
+{% for erro in formulario.non_field_errors %}<p class="erro-campo" role="alert">{{ erro }}</p>{% endfor %}
+{% for campo in formulario %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% for erro in campo.errors %}<small class="erro-campo">{{ erro }}</small>{% endfor %}</div>{% endfor %}
+<button class="btn btn-full" type="submit">Criar conta</button>
+</form></div></section>
+{% endblock %}

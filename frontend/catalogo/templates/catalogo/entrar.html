@@ -1,0 +1,16 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}Entrar | LojaCarro{% endblock %}
+{% block content %}
+<section class="container section auth-wrap"><div class="form-panel">
+<p class="eyebrow">Sua conta</p><h1>Entrar no LojaCarro</h1>
+<p class="muted">Use o mesmo e-mail e senha cadastrados no backend.</p>
+{% if cadastro_ok %}<div class="notice" role="status">Cadastro realizado! Faça seu login.</div>{% endif %}
+{% if expirou %}<div class="alert" role="alert">Sua sessão expirou. Entre novamente.</div>{% endif %}
+<form method="post" class="stack-form" action="{% url 'catalogo:entrar' %}">{% csrf_token %}
+<input type="hidden" name="next" value="{{ proximo }}">
+{% for erro in formulario.non_field_errors %}<p class="erro-campo" role="alert">{{ erro }}</p>{% endfor %}
+{% for campo in formulario %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% for erro in campo.errors %}<small class="erro-campo">{{ erro }}</small>{% endfor %}</div>{% endfor %}
+<button class="btn btn-full" type="submit">Entrar</button>
+</form><p class="muted small">Ainda não tem conta? <a class="text-link" href="{% url 'catalogo:cadastro' %}">Cadastre-se como cliente</a>.</p>
+</div></section>
+{% endblock %}

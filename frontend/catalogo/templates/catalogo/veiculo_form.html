@@ -1,0 +1,13 @@
+{% extends 'catalogo/base.html' %}
+{% block title %}{% if editando %}Editar veículo{% else %}Cadastrar veículo{% endif %} | LojaCarro{% endblock %}
+{% block content %}
+<section class="container section"><a class="text-link" href="{% url 'catalogo:painel' %}">← Voltar ao painel</a>
+<div class="form-panel form-panel-wide"><p class="eyebrow">Gestão de estoque</p>
+<h1>{% if editando %}Editar veículo #{{ carro.id }}{% else %}Cadastrar novo veículo{% endif %}</h1>
+<p class="muted">{% if editando %}Se não selecionar outra foto, a imagem atual será preservada.{% else %}Para cadastrar o veículo é obrigatório enviar uma fotografia real.{% endif %}</p>
+<form method="post" enctype="multipart/form-data" class="stack-form" novalidate>{% csrf_token %}
+{% for erro in formulario.non_field_errors %}<p class="erro-campo" role="alert">{{ erro }}</p>{% endfor %}
+<div class="form-grid">{% for campo in formulario %}<div class="campo {% if campo.name == 'descricao' or campo.name == 'foto' %}campo-wide{% endif %}"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}{% for erro in campo.errors %}<small class="erro-campo" role="alert">{{ erro }}</small>{% endfor %}</div>{% endfor %}</div>
+<div class="acoes"><button class="btn" type="submit">{% if editando %}Salvar alterações{% else %}Cadastrar veículo{% endif %}</button><a class="text-link" href="{% url 'catalogo:painel' %}">Cancelar</a></div>
+</form></div></section>
+{% endblock %}
